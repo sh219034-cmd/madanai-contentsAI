@@ -26,8 +26,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { result } = await regenerateSectionWithAi(parsed.data);
-    return NextResponse.json({ result });
+    const { result, usage } = await regenerateSectionWithAi(parsed.data);
+    return NextResponse.json({ result, usage });
   } catch (error) {
     const mapped = mapGenerationError(error);
     console.error(`[api/regenerate] failed: ${mapped.code}`);

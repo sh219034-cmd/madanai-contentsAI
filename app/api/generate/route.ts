@@ -26,8 +26,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await generateContentFromAi(parsed.data);
-    return NextResponse.json({ result });
+    const { output, usage } = await generateContentFromAi(parsed.data);
+    return NextResponse.json({ result: output, usage });
   } catch (error) {
     const mapped = mapGenerationError(error);
     // Claudeのレスポンス全文やAPIキーはログへ出さず、エラー種別のみ記録する

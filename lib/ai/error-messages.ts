@@ -20,6 +20,13 @@ export function mapGenerationError(error: unknown): GenerationErrorResponse {
           message:
             "AI機能がまだ利用できません。管理者にANTHROPIC_API_KEYの設定をご確認いただくか、「サンプルで確認する」から画面の動作をお試しください。",
         };
+      case "invalid_model":
+        return {
+          status: 503,
+          code: error.code,
+          message:
+            "設定されているAIモデルが利用できません。管理者にANTHROPIC_GENERATION_MODEL / ANTHROPIC_REGENERATION_MODELの設定をご確認いただくか、「サンプルで確認する」から画面の動作をお試しください。",
+        };
       case "rate_limited":
         return {
           status: 429,

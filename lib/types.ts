@@ -77,6 +77,18 @@ export type CtaInfo = {
   googleFormCta: string; // Googleフォームへの誘導文
 };
 
+/**
+ * 直近のClaude API呼び出しのトークン使用量・概算費用（開発者向け表示用）。
+ * APIキーや生成本文は含めない。
+ */
+export type GenerationUsage = {
+  model: string;
+  processType: "generate" | "regenerate";
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCostUsd: number | null;
+};
+
 export type GeneratedContent = {
   id: string;
   createdAt: string;
@@ -87,4 +99,5 @@ export type GeneratedContent = {
   line: LineMessages;
   sns: SnsContent;
   cta: CtaInfo;
+  lastUsage?: GenerationUsage;
 };

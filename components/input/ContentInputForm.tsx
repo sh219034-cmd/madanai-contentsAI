@@ -14,6 +14,7 @@ import {
 import { FIXED_DEMO_INPUT } from "@/lib/mock-generated-content";
 import { buildGeneratedContentFromAi } from "@/lib/ai/build-content";
 import type { GeneratedContentAiOutput } from "@/lib/ai/schema";
+import type { GenerationUsage } from "@/lib/types";
 import { GenerationProgress } from "./GenerationProgress";
 
 const defaultValues: ContentInputFormValues = {
@@ -110,10 +111,19 @@ export function ContentInputForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
-      const json: { result?: unknown; message?: string } = await res.json();
+      const json: {
+        result?: unknown;
+        usage?: GenerationUsage;
+        message?: string;
+      } = await res.json();
 
       if (!res.ok || !json.result) {
         throw new Error(json.message ?? "生成に失敗しました。");
+      }
+
+      if (json.usage) {
+        // 開発者向け：トークン使用量・概算費用をコンソールに出力する
+        console.info("[madanai] generation usage", json.usage);
       }
 
       setStageIndex(4);
@@ -122,6 +132,7 @@ export function ContentInputForm() {
         id,
         input,
         json.result as GeneratedContentAiOutput,
+        json.usage,
       );
 
       try {

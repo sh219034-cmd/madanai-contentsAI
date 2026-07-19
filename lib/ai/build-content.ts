@@ -1,4 +1,9 @@
-import type { ContentInput, GeneratedContent, ThreadsPost } from "@/lib/types";
+import type {
+  ContentInput,
+  GeneratedContent,
+  GenerationUsage,
+  ThreadsPost,
+} from "@/lib/types";
 import type { GeneratedContentAiOutput } from "./schema";
 
 /**
@@ -9,6 +14,7 @@ export function buildGeneratedContentFromAi(
   id: string,
   input: ContentInput,
   ai: GeneratedContentAiOutput,
+  usage?: GenerationUsage,
 ): GeneratedContent {
   const now = new Date().toISOString();
 
@@ -39,5 +45,6 @@ export function buildGeneratedContentFromAi(
       imagePrompt: ai.sns.imagePrompt,
     },
     cta: ai.cta,
+    lastUsage: usage,
   };
 }

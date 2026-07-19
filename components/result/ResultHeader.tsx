@@ -1,14 +1,30 @@
 import Link from "next/link";
-import type { ContentInput } from "@/lib/types";
+import type { ContentInput, GenerationUsage } from "@/lib/types";
 import type { SaveStatus } from "@/lib/hooks/useGeneratedContent";
 import { SaveStatusBadge } from "./SaveStatusBadge";
+
+function UsageDebugLine({ usage }: { usage: GenerationUsage }) {
+  const cost =
+    usage.estimatedCostUsd !== null && usage.estimatedCostUsd !== undefined
+      ? `$${usage.estimatedCostUsd.toFixed(4)}`
+      : "不明";
+  return (
+    <p className="rounded-lg bg-neutral-50 px-3 py-2 font-mono text-[11px] leading-relaxed text-neutral-400">
+      使用モデル: {usage.model} / 入力: {usage.inputTokens.toLocaleString()} tokens / 出力:{" "}
+      {usage.outputTokens.toLocaleString()} tokens / 概算費用: {cost}
+      （開発者向け表示・直近のAI呼び出し分のみ）
+    </p>
+  );
+}
 
 export function ResultHeader({
   input,
   status,
+  lastUsage,
 }: {
   input: ContentInput;
   status: SaveStatus;
+  lastUsage?: GenerationUsage;
 }) {
   return (
     <header className="border-b border-neutral-100 bg-white">
@@ -48,6 +64,7 @@ export function ResultHeader({
             </p>
           </div>
         </div>
+        {lastUsage ? <UsageDebugLine usage={lastUsage} /> : null}
       </div>
     </header>
   );

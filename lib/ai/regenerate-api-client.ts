@@ -1,6 +1,6 @@
 "use client";
 
-import type { ContentInput } from "@/lib/types";
+import type { ContentInput, GenerationUsage } from "@/lib/types";
 import type { RegenerateKind } from "./regenerate-types";
 
 type RegenerateApiPayload = {
@@ -23,10 +23,16 @@ export async function callRegenerateApi(
     body: JSON.stringify(payload),
   });
 
-  const json: { result?: unknown; message?: string } = await res.json();
+  const json: { result?: unknown; usage?: GenerationUsage; message?: string } =
+    await res.json();
 
   if (!res.ok) {
     throw new Error(json.message ?? "再生成に失敗しました。");
+  }
+
+  if (json.usage) {
+    // 開発者向け：トークン使用量・概算費用をコンソールに出力する
+    console.info("[madanai] regeneration usage", json.usage);
   }
 
   return json.result;

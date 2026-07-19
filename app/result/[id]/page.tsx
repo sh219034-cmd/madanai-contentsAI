@@ -48,7 +48,7 @@ export default function ResultPage() {
 
   return (
     <div className="pb-24">
-      <ResultHeader input={content.input} status={status} />
+      <ResultHeader input={content.input} status={status} lastUsage={content.lastUsage} />
       <main className="mx-auto flex max-w-3xl flex-col gap-14 px-6 py-10">
         <StrategySection
           input={content.input}
