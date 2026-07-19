@@ -1,0 +1,18 @@
+<svg width="160" height="32" viewBox="0 0 160 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="madanai-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff6ec7" />
+      <stop offset="55%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="4" width="24" height="24" rx="7" fill="url(#madanai-gradient)" />
+  <text
+    x="34"
+    y="23"
+    font-family="Hiragino Sans, Noto Sans JP, sans-serif"
+    font-size="19"
+    font-weight="700"
+    fill="#111111"
+  >マダナイ？</text>
+</svg>
