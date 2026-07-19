@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, type FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { contentInputSchema, type ContentInputFormValues } from "@/lib/schema";
 import { TONE_PRESETS } from "@/lib/madanai-brand";
+import { createAndSaveMockContent } from "@/lib/content-storage";
+import { FIXED_DEMO_INPUT } from "@/lib/mock-generated-content";
 
 const defaultValues: ContentInputFormValues = {
   theme: "",
@@ -46,9 +48,7 @@ const inputClass =
   "rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-neutral-900 outline-none transition focus:border-transparent focus:ring-2 focus:ring-fuchsia-400/60";
 
 export function ContentInputForm() {
-  const [submitted, setSubmitted] = useState<ContentInputFormValues | null>(
-    null,
-  );
+  const router = useRouter();
 
   const {
     register,
@@ -60,11 +60,20 @@ export function ContentInputForm() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    // STEP1時点ではClaude APIに未接続のため、入力内容の確認表示のみ行う。
-    // STEP2以降で /result/[id] への生成・遷移に置き換える。
+    // STEP3でClaude APIに接続するまでは、入力内容から固定モックの
+    // 生成結果を作りlocalStorageへ保存したうえで結果画面へ遷移する。
     await new Promise((resolve) => setTimeout(resolve, 300));
-    setSubmitted(values);
+    const content = createAndSaveMockContent({
+      ...values,
+      supplementary: values.supplementary || undefined,
+    });
+    router.push(`/result/${content.id}`);
   });
+
+  const handleUseSample = () => {
+    const content = createAndSaveMockContent(FIXED_DEMO_INPUT);
+    router.push(`/result/${content.id}`);
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -163,25 +172,24 @@ export function ContentInputForm() {
           />
         </FieldShell>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="mt-2 inline-flex w-fit items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ff6ec7_0%,#a855f7_55%,#7c3aed_100%)] px-6 py-3.5 text-[15px] font-bold text-white shadow-[0_8px_20px_rgba(168,85,247,0.28)] transition disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isSubmitting ? "確認中..." : "AIに相談する →"}
-        </button>
-      </form>
-
-      {submitted ? (
-        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-6">
-          <p className="mb-3 text-sm font-bold text-neutral-800">
-            入力内容を受け付けました（STEP2以降で生成結果画面に接続予定）
-          </p>
-          <pre className="overflow-x-auto whitespace-pre-wrap break-words text-xs text-neutral-600">
-            {JSON.stringify(submitted, null, 2)}
-          </pre>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="inline-flex w-fit items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ff6ec7_0%,#a855f7_55%,#7c3aed_100%)] px-6 py-3.5 text-[15px] font-bold text-white shadow-[0_8px_20px_rgba(168,85,247,0.28)] transition disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting ? "作成中..." : "AIに相談する →"}
+          </button>
+          <button
+            type="button"
+            onClick={handleUseSample}
+            disabled={isSubmitting}
+            className="text-sm font-semibold text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            サンプルで確認する
+          </button>
         </div>
-      ) : null}
+      </form>
     </div>
   );
 }
