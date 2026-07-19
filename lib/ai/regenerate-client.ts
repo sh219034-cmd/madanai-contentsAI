@@ -14,39 +14,11 @@ import {
   type RegenerateTextOutput,
 } from "./regenerate-schema";
 import type { RegenerateRequest } from "./regenerate-types";
-import { GenerationError } from "./client";
+import { GenerationError, classifyError, getApiKeyOrThrow } from "./errors";
 import { recordUsage, type UsageSummary } from "./usage-log";
 
 function getClient(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new GenerationError("missing_api_key", "ANTHROPIC_API_KEY is not set");
-  }
-  return new Anthropic({ apiKey });
-}
-
-function classifyError(error: unknown): GenerationError {
-  if (error instanceof GenerationError) return error;
-  if (error instanceof Anthropic.NotFoundError) {
-    return new GenerationError("invalid_model", "model not found", { cause: error });
-  }
-  if (error instanceof Anthropic.AuthenticationError) {
-    return new GenerationError("missing_api_key", "authentication failed", { cause: error });
-  }
-  if (error instanceof Anthropic.RateLimitError) {
-    return new GenerationError("rate_limited", "rate limited", { cause: error });
-  }
-  if (error instanceof Anthropic.APIConnectionError) {
-    return new GenerationError("network", "connection failed", { cause: error });
-  }
-  if (error instanceof Anthropic.APIError) {
-    return new GenerationError("api_error", error.message, { cause: error });
-  }
-  return new GenerationError(
-    "api_error",
-    error instanceof Error ? error.message : "unknown error",
-    { cause: error },
-  );
+  return new Anthropic({ apiKey: getApiKeyOrThrow() });
 }
 
 export type RegenerateResult = {

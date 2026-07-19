@@ -1,4 +1,4 @@
-import type { ContentInput, GeneratedContent } from "./types";
+import type { ContentInput, GeneratedContent, StrategyCandidate } from "./types";
 import { buildMockGeneratedContent } from "./mock-generated-content";
 
 const STORAGE_KEY = "madanai:contents";
@@ -59,12 +59,17 @@ export function generateContentId(): string {
 }
 
 /**
- * 入力内容から固定モックの生成結果を作成し、localStorageへ保存する。
- * 「サンプルで確認する」からのみ使用する（通常の生成はClaude APIを呼び出す）。
+ * 指定したid・入力・選択済み戦略から固定モックの生成結果を作成し、localStorageへ保存する。
+ * 「サンプルで確認する」経由の戦略選択（/strategy/[id]、isMock analysis）からのみ使用する
+ * （通常の生成はClaude APIを呼び出す）。idはStrategyAnalysisと共有するため、
+ * ここでは新規発行せず呼び出し側から受け取る。
  */
-export function createAndSaveMockContent(input: ContentInput): GeneratedContent {
-  const id = generateContentId();
-  const content = buildMockGeneratedContent(id, input);
+export function createAndSaveMockGeneratedContent(
+  id: string,
+  input: ContentInput,
+  selectedStrategy: StrategyCandidate,
+): GeneratedContent {
+  const content = buildMockGeneratedContent(id, input, selectedStrategy);
   saveContent(content);
   return content;
 }

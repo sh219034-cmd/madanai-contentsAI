@@ -27,6 +27,9 @@ export const AI_CONFIG = {
     generation: resolveModel(process.env.ANTHROPIC_GENERATION_MODEL, "claude-sonnet-5"),
     // 部分再生成（POST /api/regenerate）
     regeneration: resolveModel(process.env.ANTHROPIC_REGENERATION_MODEL, "claude-sonnet-5"),
+    // AIマーケティング分析・戦略提案（POST /api/strategy）。比較検討タスクのため
+    // 通常生成と分けて設定できるようにしておく（既定は同じSonnet系）。
+    strategy: resolveModel(process.env.ANTHROPIC_STRATEGY_MODEL, "claude-sonnet-5"),
     // 将来の高品質モード用（現時点ではUIから未使用）
     premium: resolveModel(process.env.ANTHROPIC_PREMIUM_MODEL, "claude-opus-4-8"),
   },
@@ -34,6 +37,8 @@ export const AI_CONFIG = {
   maxOutputTokens: 8000,
   // 部分再生成は対象1件のみのため出力上限を小さくする。
   regenerateMaxOutputTokens: 2000,
+  // 戦略候補5〜9件分（各案は短文フィールドのみ）のため中程度で足りる。
+  strategyMaxOutputTokens: 4000,
   // 定型フォーマットの構造化生成が中心のため high ではなく medium を既定にし、
   // 費用と応答速度のバランスを取る。
   effort: "medium" as const,

@@ -1,6 +1,7 @@
 import type { PdfSection } from "@/lib/types";
 import { MADANAI_BRAND } from "@/lib/madanai-brand";
 import { pdfSectionLabel } from "@/lib/pdf/section-label";
+import { buildSectionRenderModel, type SectionRenderModel } from "@/lib/pdf/section-render-model";
 
 /**
  * マダナイ特典PDFの唯一のテンプレート（DESIGN.md 8章）。
@@ -9,10 +10,13 @@ import { pdfSectionLabel } from "@/lib/pdf/section-label";
  * プレーンCSS文字列(<style>)のみで完結させている。
  *
  * 注意: Next.js(App Router)は app/ 配下から react-dom/server を
- * importできないため、PDFダウンロード(/api/pdf)側は同じPDF_STYLESと
- * pdfSectionLabelを使いつつ、HTMLをReactを使わない文字列で
- * 別途組み立てている(lib/pdf/render-html.ts)。レイアウトを変更した
- * 場合はrender-html.tsも合わせて更新すること。
+ * importできないため、PDFダウンロード(/api/pdf)側は同じPDF_STYLES・
+ * pdfSectionLabel・buildSectionRenderModel(lib/pdf/section-render-model.ts)
+ * を使いつつ、HTMLをReactを使わない文字列で別途組み立てている
+ * (lib/pdf/render-html.ts)。「どの型に何を表示するか」の判断は
+ * buildSectionRenderModelに共通化済みのため、レイアウト変更時に
+ * 二重で直す必要があるのは見た目のマークアップ(このファイルのJSXと
+ * render-html.tsのHTML文字列)のみ。
  */
 export const PDF_STYLES = `
 .pdf-doc {
@@ -121,33 +125,34 @@ function Heading({ label, title }: { label: string; title: string }) {
   );
 }
 
-function nonEmpty(items: string[] | undefined): string[] {
-  return (items ?? []).filter((item) => item.trim().length > 0);
-}
-
-function SectionContent({ section, label }: { section: PdfSection; label: string }) {
-  switch (section.type) {
+/**
+ * 正規化済みモデル(SectionRenderModel)を描画するだけの薄い葉実装。
+ * 「どの型にどのフィールドを出すか」の判断は lib/pdf/section-render-model.ts
+ * に共通化済みのため、ここでは受け取ったkindごとにマークアップを出すだけ。
+ */
+function SectionByModel({ model }: { model: SectionRenderModel }) {
+  switch (model.kind) {
     case "cover":
       return (
         <div className="pdf-cover">
           <span className="pdf-cover__bar" />
-          <h1 className="pdf-cover__title">{section.title}</h1>
-          <span className="pdf-cover__brand">{MADANAI_BRAND.name}</span>
+          <h1 className="pdf-cover__title">{model.title}</h1>
+          <span className="pdf-cover__brand">{model.brandName}</span>
         </div>
       );
     case "subtitle":
       return (
         <div className="pdf-subtitle">
-          <p className="pdf-subtitle__text">{section.body || section.title}</p>
+          <p className="pdf-subtitle__text">{model.text}</p>
         </div>
       );
     case "toc":
       return (
         <>
-          <Heading label={label} title={section.title} />
+          <Heading label={model.label} title={model.title} />
           <ol className="pdf-toc-list">
-            {nonEmpty(section.items).map((item, index) => (
-              <li key={`${section.id}-toc-${index}`}>
+            {model.items.map((item, index) => (
+              <li key={index}>
                 <span className="pdf-toc-index">{String(index + 1).padStart(2, "0")}</span>
                 <span>{item}</span>
               </li>
@@ -158,15 +163,15 @@ function SectionContent({ section, label }: { section: PdfSection; label: string
     case "checklist":
       return (
         <>
-          <Heading label={label} title={section.title} />
-          {section.body ? (
+          <Heading label={model.label} title={model.title} />
+          {model.intro ? (
             <p className="pdf-paragraph" style={{ marginBottom: "8mm" }}>
-              {section.body}
+              {model.intro}
             </p>
           ) : null}
           <ul className="pdf-checklist">
-            {nonEmpty(section.items).map((item, index) => (
-              <li key={`${section.id}-check-${index}`}>
+            {model.items.map((item, index) => (
+              <li key={index}>
                 <span className="pdf-checkbox" />
                 <span>{item}</span>
               </li>
@@ -177,17 +182,17 @@ function SectionContent({ section, label }: { section: PdfSection; label: string
     case "cta":
       return (
         <>
-          <Heading label={label} title={section.title} />
+          <Heading label={model.label} title={model.title} />
           <div className="pdf-cta-box">
-            <p className="pdf-paragraph">{section.body}</p>
+            <p className="pdf-paragraph">{model.body}</p>
           </div>
         </>
       );
-    default:
+    case "text":
       return (
         <>
-          <Heading label={label} title={section.title} />
-          <p className="pdf-paragraph">{section.body}</p>
+          <Heading label={model.label} title={model.title} />
+          <p className="pdf-paragraph">{model.body}</p>
         </>
       );
   }
@@ -203,13 +208,14 @@ export function PdfDocument({ sections }: { sections: PdfSection[] }) {
       {ordered.map((section, index) => {
         const bodyIndex = ordered.slice(0, index).filter((s) => s.type === "body").length;
         const label = pdfSectionLabel(section, bodyIndex);
+        const model = buildSectionRenderModel(section, label);
         return (
           <section className="pdf-page" key={section.id}>
             <header className="pdf-page__header">
               <LogoMark />
             </header>
             <div className="pdf-page__body">
-              <SectionContent section={section} label={label} />
+              <SectionByModel model={model} />
             </div>
             <footer className="pdf-page__footer">
               {index + 1} / {total}

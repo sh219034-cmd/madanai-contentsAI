@@ -39,3 +39,47 @@ export const contentInputSchema = z.object({
 });
 
 export type ContentInputFormValues = z.infer<typeof contentInputSchema>;
+
+/**
+ * クライアントが選択済みの戦略候補(StrategyCandidate)を /api/generate へ送る際の
+ * バリデーションスキーマ。値はこのアプリ自身が/api/strategyまたは固定モックで
+ * 発行したものだが、ネットワークをまたぐため構造だけは検証する。
+ */
+export const strategyCandidateSchema = z.object({
+  id: z.string().min(1),
+  angle: z.enum([
+    "empathy",
+    "problem",
+    "comparison",
+    "story",
+    "beginner",
+    "store",
+    "b2b",
+    "ai-driven",
+    "trust",
+    "diagnosis",
+    "checklist",
+    "case-study",
+    "other",
+  ]),
+  name: z.string().min(1).max(60),
+  targetPsychology: z.string().min(1).max(400),
+  whyItWorks: z.string().min(1).max(400),
+  expectedResponseLevel: z.enum(["低", "中", "高", "非常に高い"]),
+  inquiryReason: z.string().min(1).max(400),
+  recommendationScore: z.union([
+    z.literal(1),
+    z.literal(2),
+    z.literal(3),
+    z.literal(4),
+    z.literal(5),
+  ]),
+  contentFlow: z.array(z.string().max(60)).min(1).max(10),
+  isRecommended: z.boolean(),
+  recommendationReason: z.string().max(400).optional(),
+});
+
+export const generateRequestSchema = z.object({
+  input: contentInputSchema,
+  strategy: strategyCandidateSchema,
+});

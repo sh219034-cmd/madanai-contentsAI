@@ -6,16 +6,14 @@ import { useForm, type FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { contentInputSchema, type ContentInputFormValues } from "@/lib/schema";
 import { TONE_PRESETS } from "@/lib/madanai-brand";
-import {
-  createAndSaveMockContent,
-  generateContentId,
-  saveContent,
-} from "@/lib/content-storage";
+import { generateContentId } from "@/lib/content-storage";
+import { saveStrategyAnalysis } from "@/lib/strategy-storage";
 import { FIXED_DEMO_INPUT } from "@/lib/mock-generated-content";
-import { buildGeneratedContentFromAi } from "@/lib/ai/build-content";
-import type { GeneratedContentAiOutput } from "@/lib/ai/schema";
+import { buildMockStrategyAnalysis } from "@/lib/mock-strategy-analysis";
+import { buildStrategyAnalysisFromAi } from "@/lib/ai/build-strategy";
+import type { StrategyAnalysisAiOutput } from "@/lib/ai/strategy-schema";
 import type { GenerationUsage } from "@/lib/types";
-import { GenerationProgress } from "./GenerationProgress";
+import { GenerationProgress, STRATEGY_ANALYSIS_STAGES } from "./GenerationProgress";
 
 const defaultValues: ContentInputFormValues = {
   theme: "",
@@ -28,8 +26,8 @@ const defaultValues: ContentInputFormValues = {
   supplementary: "",
 };
 
-const STAGE_INTERVAL_MS = 1500;
-const LAST_AUTO_STAGE = 3; // 「最終調整しています」（index4）の手前まで自動で進める
+const STAGE_INTERVAL_MS = 1200;
+const LAST_AUTO_STAGE = STRATEGY_ANALYSIS_STAGES.length - 2;
 
 function FieldShell({
   label,
@@ -61,7 +59,7 @@ const inputClass =
 
 export function ContentInputForm() {
   const router = useRouter();
-  const [generating, setGenerating] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [stageIndex, setStageIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const stageTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -93,11 +91,11 @@ export function ContentInputForm() {
   // 読み書きしないため react-hooks/refs を無効化する。
   // eslint-disable-next-line react-hooks/refs
   const onSubmit = handleSubmit(async (values) => {
-    // 二重送信を防止する（生成中はフォーム自体が非表示になるが、念のため保持）
-    if (generating) return;
+    // 二重送信を防止する（分析中はフォーム自体が非表示になるが、念のため保持）
+    if (analyzing) return;
 
     setErrorMessage(null);
-    setGenerating(true);
+    setAnalyzing(true);
     startStageAnimation();
 
     const input = {
@@ -106,7 +104,7 @@ export function ContentInputForm() {
     };
 
     try {
-      const res = await fetch("/api/generate", {
+      const res = await fetch("/api/strategy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
@@ -118,35 +116,35 @@ export function ContentInputForm() {
       } = await res.json();
 
       if (!res.ok || !json.result) {
-        throw new Error(json.message ?? "生成に失敗しました。");
+        throw new Error(json.message ?? "戦略分析に失敗しました。");
       }
 
       if (json.usage) {
         // 開発者向け：トークン使用量・概算費用をコンソールに出力する
-        console.info("[madanai] generation usage", json.usage);
+        console.info("[madanai] strategy analysis usage", json.usage);
       }
 
-      setStageIndex(4);
+      setStageIndex(STRATEGY_ANALYSIS_STAGES.length - 1);
       const id = generateContentId();
-      const content = buildGeneratedContentFromAi(
+      const analysis = buildStrategyAnalysisFromAi(
         id,
         input,
-        json.result as GeneratedContentAiOutput,
+        json.result as StrategyAnalysisAiOutput,
         json.usage,
       );
 
       try {
-        saveContent(content);
+        saveStrategyAnalysis(analysis);
       } catch {
         throw new Error(
-          "生成結果の保存に失敗しました。ブラウザのストレージ容量をご確認のうえ、もう一度お試しください。",
+          "分析結果の保存に失敗しました。ブラウザのストレージ容量をご確認のうえ、もう一度お試しください。",
         );
       }
 
-      router.push(`/result/${content.id}`);
+      router.push(`/strategy/${analysis.id}`);
     } catch (error) {
       stopStageAnimation();
-      setGenerating(false);
+      setAnalyzing(false);
       setErrorMessage(
         error instanceof Error
           ? error.message
@@ -156,18 +154,20 @@ export function ContentInputForm() {
   });
 
   const handleUseSample = () => {
-    if (generating) return;
-    const content = createAndSaveMockContent(FIXED_DEMO_INPUT);
-    router.push(`/result/${content.id}`);
+    if (analyzing) return;
+    const id = generateContentId();
+    const analysis = buildMockStrategyAnalysis(id, FIXED_DEMO_INPUT);
+    saveStrategyAnalysis(analysis);
+    router.push(`/strategy/${analysis.id}`);
   };
 
-  if (generating) {
+  if (analyzing) {
     return (
       <div className="flex flex-col gap-4">
         <p className="text-sm font-semibold text-neutral-700">
-          AIが内容を作成しています。しばらくお待ちください…
+          AIマーケティング担当者が内容を分析しています。しばらくお待ちください…
         </p>
-        <GenerationProgress currentStage={stageIndex} />
+        <GenerationProgress currentStage={stageIndex} stages={STRATEGY_ANALYSIS_STAGES} />
       </div>
     );
   }
@@ -281,7 +281,7 @@ export function ContentInputForm() {
             disabled={isSubmitting}
             className="inline-flex w-fit items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ff6ec7_0%,#a855f7_55%,#7c3aed_100%)] px-6 py-3.5 text-[15px] font-bold text-white shadow-[0_8px_20px_rgba(168,85,247,0.28)] transition disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "作成中..." : "AIに相談する →"}
+            {isSubmitting ? "分析中..." : "AIマーケティング担当者に相談する →"}
           </button>
           <button
             type="button"

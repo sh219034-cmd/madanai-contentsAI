@@ -1,15 +1,28 @@
-const STAGES = [
-  "入力内容を確認しています",
-  "マーケティング戦略を設計しています",
+export const CONTENT_GENERATION_STAGES = [
+  "選択された戦略を確認しています",
+  "特典PDFの構成を組み立てています",
   "特典コンテンツを作成しています",
   "LINE・SNS文章を作成しています",
   "最終調整しています",
 ];
 
-export function GenerationProgress({ currentStage }: { currentStage: number }) {
+export const STRATEGY_ANALYSIS_STAGES = [
+  "入力内容を確認しています",
+  "類似ケースの傾向を分析しています",
+  "戦略候補を検討しています",
+  "おすすめ戦略を選定しています",
+];
+
+export function GenerationProgress({
+  currentStage,
+  stages = CONTENT_GENERATION_STAGES,
+}: {
+  currentStage: number;
+  stages?: string[];
+}) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-6">
-      {STAGES.map((label, index) => {
+      {stages.map((label, index) => {
         const done = index < currentStage;
         const active = index === currentStage;
         return (

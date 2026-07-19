@@ -6,6 +6,7 @@ import type {
   MarketingStrategy,
   PdfSection,
   SnsContent,
+  StrategyCandidate,
   ThreadsPost,
 } from "./types";
 
@@ -226,14 +227,16 @@ function withIds<T extends object>(items: T[], prefix: string): (T & { id: strin
 }
 
 /**
- * ContentInput から GeneratedContent のモックを組み立てる。
- * strategy は入力を反映し、pdf/line/sns/cta は固定デモコンテンツを使う
+ * ContentInput・選択済み戦略から GeneratedContent のモックを組み立てる。
+ * strategy(実行ブリーフ)は入力を反映し、pdf/line/sns/cta は固定デモコンテンツを使う
  * （Claude API未接続のため、入力ごとに本文まで作り分けることはしない）。
- * STEP3ではこの関数をClaude APIの構造化レスポンスへの変換に置き換える。
+ * 「サンプルで確認する」経由の /strategy/[id] で選んだ候補をそのまま
+ * selectedStrategyとして保存する。
  */
 export function buildMockGeneratedContent(
   id: string,
   input: ContentInput,
+  selectedStrategy: StrategyCandidate,
 ): GeneratedContent {
   const now = new Date().toISOString();
 
@@ -242,6 +245,7 @@ export function buildMockGeneratedContent(
     createdAt: now,
     updatedAt: now,
     input,
+    selectedStrategy,
     strategy: buildStrategyFromInput(input),
     pdf: {
       sections: withIds(FIXED_PDF_SECTIONS, `${id}-pdf`),

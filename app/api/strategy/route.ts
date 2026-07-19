@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { generateRequestSchema } from "@/lib/schema";
-import { generateContentFromAi } from "@/lib/ai/client";
+import { contentInputSchema } from "@/lib/schema";
+import { analyzeStrategyWithAi } from "@/lib/ai/strategy-client";
 import { mapGenerationError } from "@/lib/ai/error-messages";
 
 export async function POST(request: Request) {
@@ -14,27 +14,24 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = generateRequestSchema.safeParse(body);
+  const parsed = contentInputSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       {
         error: "invalid_request",
-        message: "入力内容または選択した戦略が正しくありません。戦略選択からやり直してください。",
+        message: "入力内容が正しくありません。入力画面を確認してください。",
       },
       { status: 400 },
     );
   }
 
   try {
-    const { output, usage } = await generateContentFromAi(
-      parsed.data.input,
-      parsed.data.strategy,
-    );
+    const { output, usage } = await analyzeStrategyWithAi(parsed.data);
     return NextResponse.json({ result: output, usage });
   } catch (error) {
     const mapped = mapGenerationError(error);
     // Claudeのレスポンス全文やAPIキーはログへ出さず、エラー種別のみ記録する
-    console.error(`[api/generate] failed: ${mapped.code}`);
+    console.error(`[api/strategy] failed: ${mapped.code}`);
     return NextResponse.json(
       { error: mapped.code, message: mapped.message },
       { status: mapped.status },

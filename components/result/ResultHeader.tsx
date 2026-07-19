@@ -1,7 +1,24 @@
 import Link from "next/link";
-import type { ContentInput, GenerationUsage } from "@/lib/types";
+import type { ContentInput, GenerationUsage, StrategyCandidate } from "@/lib/types";
 import type { SaveStatus } from "@/lib/hooks/useGeneratedContent";
+import { StarRating } from "@/components/strategy/StarRating";
 import { SaveStatusBadge } from "./SaveStatusBadge";
+
+function StrategyBadgeRow({ id, strategy }: { id: string; strategy: StrategyCandidate }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2.5 rounded-xl border border-neutral-200 bg-neutral-50 px-3.5 py-2.5">
+      <span className="text-[11px] font-bold text-neutral-400">選択中の戦略</span>
+      <span className="text-[13px] font-extrabold text-neutral-900">{strategy.name}</span>
+      <StarRating score={strategy.recommendationScore} />
+      <Link
+        href={`/strategy/${id}`}
+        className="ml-auto rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[11.5px] font-bold text-neutral-600 transition hover:border-neutral-300"
+      >
+        戦略を変更
+      </Link>
+    </div>
+  );
+}
 
 function UsageDebugLine({ usage }: { usage: GenerationUsage }) {
   const cost =
@@ -18,12 +35,16 @@ function UsageDebugLine({ usage }: { usage: GenerationUsage }) {
 }
 
 export function ResultHeader({
+  id,
   input,
   status,
+  selectedStrategy,
   lastUsage,
 }: {
+  id: string;
   input: ContentInput;
   status: SaveStatus;
+  selectedStrategy: StrategyCandidate;
   lastUsage?: GenerationUsage;
 }) {
   return (
@@ -64,6 +85,7 @@ export function ResultHeader({
             </p>
           </div>
         </div>
+        <StrategyBadgeRow id={id} strategy={selectedStrategy} />
         {lastUsage ? <UsageDebugLine usage={lastUsage} /> : null}
       </div>
     </header>

@@ -2,6 +2,7 @@ import type {
   ContentInput,
   GeneratedContent,
   GenerationUsage,
+  StrategyCandidate,
   ThreadsPost,
 } from "@/lib/types";
 import type { GeneratedContentAiOutput } from "./schema";
@@ -9,11 +10,13 @@ import type { GeneratedContentAiOutput } from "./schema";
 /**
  * Claude APIの構造化出力からGeneratedContentを組み立てる。
  * id/createdAt/updatedAt/inputはアプリ側で付与する。
+ * selectedStrategyは/strategy/[id]でユーザーが選んだ戦略候補のスナップショット。
  */
 export function buildGeneratedContentFromAi(
   id: string,
   input: ContentInput,
   ai: GeneratedContentAiOutput,
+  selectedStrategy: StrategyCandidate,
   usage?: GenerationUsage,
 ): GeneratedContent {
   const now = new Date().toISOString();
@@ -23,6 +26,7 @@ export function buildGeneratedContentFromAi(
     createdAt: now,
     updatedAt: now,
     input,
+    selectedStrategy,
     strategy: ai.strategy,
     pdf: {
       sections: ai.pdf.sections.map((section, index) => ({

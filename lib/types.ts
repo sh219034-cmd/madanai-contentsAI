@@ -83,10 +83,59 @@ export type CtaInfo = {
  */
 export type GenerationUsage = {
   model: string;
-  processType: "generate" | "regenerate";
+  processType: "generate" | "regenerate" | "strategy";
   inputTokens: number;
   outputTokens: number;
   estimatedCostUsd: number | null;
+};
+
+/**
+ * AIマーケティング分析が提案する戦略の切り口。
+ * 入力内容に応じてAIが妥当なものを選ぶため、毎回同じ組み合わせにはならない。
+ */
+export type StrategyAngle =
+  | "empathy" // 共感型
+  | "problem" // 問題提起型
+  | "comparison" // 比較型
+  | "story" // ストーリー型
+  | "beginner" // 初心者向け
+  | "store" // 店舗向け
+  | "b2b" // BtoB向け
+  | "ai-driven" // AI活用型
+  | "trust" // 信頼構築型
+  | "diagnosis" // 診断型
+  | "checklist" // チェックリスト型
+  | "case-study" // 事例型
+  | "other";
+
+/** 反応の期待度。具体的な%は使わず4段階の相対評価にとどめる（成果保証を避けるため）。 */
+export type ExpectedResponseLevel = "低" | "中" | "高" | "非常に高い";
+
+export type StrategyCandidate = {
+  id: string;
+  angle: StrategyAngle;
+  name: string; // 戦略名（例:「共感型」）
+  targetPsychology: string; // 狙う心理
+  whyItWorks: string; // なぜ刺さりやすいか
+  expectedResponseLevel: ExpectedResponseLevel; // 反応の期待度
+  inquiryReason: string; // 問い合わせにつながりやすいと考える理由（可能性としての表現）
+  recommendationScore: 1 | 2 | 3 | 4 | 5; // おすすめ度
+  contentFlow: string[]; // 想定する構成（例:["共感","問題の原因","チェックリスト","自己診断","無料相談"]）
+  isRecommended: boolean; // 候補中ちょうど1件のみtrue
+  recommendationReason?: string; // isRecommended===trueの場合のみ
+};
+
+/**
+ * AIマーケティング分析の結果。GeneratedContentとは別に保存し、
+ * 「戦略を変更」時に再分析せず同じ候補一覧を再利用できるようにする。
+ */
+export type StrategyAnalysis = {
+  id: string; // 生成される最初のGeneratedContent.idを引き継ぐ（複製時は新IDで別レコードを作る）
+  createdAt: string;
+  input: ContentInput;
+  candidates: StrategyCandidate[]; // 最低5件
+  usage?: GenerationUsage;
+  isMock?: boolean; // 「サンプルで確認する」由来の固定データかどうか
 };
 
 export type GeneratedContent = {
@@ -94,7 +143,8 @@ export type GeneratedContent = {
   createdAt: string;
   updatedAt: string;
   input: ContentInput;
-  strategy: MarketingStrategy;
+  selectedStrategy: StrategyCandidate; // 選択時点の戦略のスナップショット
+  strategy: MarketingStrategy; // 選択済み戦略に沿って生成された実行レベルのブリーフ
   pdf: PdfContent;
   line: LineMessages;
   sns: SnsContent;
