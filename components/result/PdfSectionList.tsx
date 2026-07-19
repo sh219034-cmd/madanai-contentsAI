@@ -1,33 +1,9 @@
 "use client";
 
 import type { ContentInput, GeneratedContent, PdfContent, PdfSection } from "@/lib/types";
+import { pdfSectionLabel } from "@/lib/pdf/section-label";
 import { PdfSectionCard } from "./PdfSectionCard";
 import { SectionHeading } from "./SectionHeading";
-
-function sectionLabel(section: PdfSection, bodyIndex: number): string {
-  switch (section.type) {
-    case "cover":
-      return "表紙";
-    case "subtitle":
-      return "サブタイトル";
-    case "intro":
-      return "導入文";
-    case "toc":
-      return "目次";
-    case "body":
-      return `本文${bodyIndex + 1}`;
-    case "checklist":
-      return "チェックリスト";
-    case "diagnosis":
-      return "診断結果";
-    case "summary":
-      return "まとめ";
-    case "cta":
-      return "CTA";
-    default:
-      return "セクション";
-  }
-}
 
 function reindex(sections: PdfSection[]): PdfSection[] {
   return sections.map((section, index) => ({ ...section, order: index }));
@@ -100,7 +76,7 @@ export function PdfSectionList({
               key={section.id}
               input={input}
               section={section}
-              label={sectionLabel(section, currentBodyIndex)}
+              label={pdfSectionLabel(section, currentBodyIndex)}
               canMoveUp={index > 0}
               canMoveDown={index < sections.length - 1}
               onUpdate={(patch) => handleUpdate(section.id, patch)}

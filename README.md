@@ -39,15 +39,27 @@ npm run dev
 
 ## 開発ステップ
 
-`docs/DESIGN.md` の「10. 開発ステップ」に沿って STEP1〜STEP6 の順に実装する。
+`docs/DESIGN.md` の「10. 開発ステップ」がベースだが、実際の開発順序は以下のとおり進めている（APIキー未取得のためSTEP3の実通信確認のみ一時保留し、先にAPI不要のPDF機能を実装した）。
 
 - STEP1: Next.js初期構築と入力画面
 - STEP2: 固定データによる生成結果画面
-- STEP3: Claude API接続（コード実装済み・実際のAPIキーでの実通信確認は未実施） ← 現在ここ
-- STEP4: 編集・再生成・コピー機能
-- STEP5: PDFテンプレート作成
-- STEP6: PDFプレビュー・ダウンロード
+- STEP3: Claude API接続（コード実装済み。実際のAPIキーでの実通信確認は**APIキー未取得のため保留中**）
+- STEP4: 編集・再生成・コピー機能（実装済み）
+- STEP4b: PDFテンプレート・プレビュー・ダウンロード・ブランドデザイン反映（実装済み。DESIGN.mdのSTEP5〜6に相当） ← 現在ここ
+
+STEP3の実通信確認（実際のClaude APIを叩く検証）を除き、他の全機能は「サンプルで確認する」の固定モックコンテンツで動作確認できる。`/api/generate`・`/api/regenerate`など実API呼び出しのコード自体は変更しておらず、APIキーが用意され次第そのまま本番生成に切り替えられる。
+
+## PDF機能（テンプレート・プレビュー・ダウンロード）
+
+- `components/pdf/PdfDocument.tsx`: 唯一のPDFテンプレート。`GeneratedContent.pdf.sections`を受け取り、A4縦・白背景・黒文字・ピンク〜紫グラデーションのアクセント（マダナイブランド）でセクションごとに1ページとして描画する。ブラウザプレビュー（`/result/[id]/pdf`）で使用。
+- `lib/pdf/render-html.ts`: `/api/pdf`がPlaywrightに渡すHTMLを生成する。**Next.js（App Router）はapp/配下から`react-dom/server`を静的importできない**制約があるため（`next build`時に検証済み）、PdfDocumentと同じCSS（`PDF_STYLES`）・同じセクションラベル（`lib/pdf/section-label.ts`）を使いながら、Reactを使わずプレーンな文字列テンプレートでHTMLを組み立てている。レイアウトを変更する際は両ファイルを合わせて更新する必要がある。
+- `POST /api/pdf`: 受け取ったセクション配列をもとに上記HTMLを組み立て、Playwrightのheadless Chromiumで`page.pdf({ format: "A4", printBackground: true })`によりPDFバイナリを生成して返す。データは保存せず、リクエストごとに使い捨てる。
+- チェックリストなど1セクションの内容が1ページに収まらない場合は、印刷CSS（`break-after: page`など）による自然な折り返しで自動的に次ページへ続く（内容が途中で切れることはない）。ただしページ番号「n / 合計」は論理セクション数（PdfSectionの数）を基準にしており、折り返しで物理ページ数が増えた場合は表示上のページ番号と実際のPDFページ数が一致しないことがある（既知の制約・MVPでは許容）。
+
+### PDF生成ライブラリについて（Puppeteer→Playwrightへ変更）
+
+`docs/DESIGN.md`ではPuppeteerを想定していたが、実装時にPlaywright（`playwright`パッケージ、`page.pdf()`）へ変更した。理由は、開発サンドボックスにPlaywright用のChromiumが既にプリインストールされており、Puppeteer用に別途ブラウザバイナリをダウンロードする必要がなかったため。機能的な違いはなく、`page.pdf()`はPuppeteerの同名APIとほぼ同等。開発環境でPlaywrightにバンドルされたChromiumのバージョンが合わない場合は、`.env.local`の`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`で実行ファイルを直接指定できる（本番デプロイでは通常未設定でよい）。
 
 ## 技術スタック
 
-Next.js (App Router) / TypeScript / Tailwind CSS / React Hook Form + Zod / Anthropic Claude API（`claude-sonnet-5`を既定、Structured Outputs） / Puppeteer（PDF生成、STEP5以降）
+Next.js (App Router) / TypeScript / Tailwind CSS / React Hook Form + Zod / Anthropic Claude API（`claude-sonnet-5`を既定、Structured Outputs） / Playwright（PDF生成）

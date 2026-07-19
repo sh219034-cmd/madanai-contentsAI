@@ -191,7 +191,7 @@ v0.1にあった`packages/`のモノレポ構成、`apps/web`分割、`db/`(Pris
 | スタイリング | Tailwind CSS | ブランドトークン（白背景・黒文字・ピンク〜紫グラデーション）を素早く適用できる |
 | フォーム | React Hook Form + Zod | 8項目の入力バリデーションとClaudeの構造化出力スキーマを共用できる |
 | AI | Anthropic Claude API（`@anthropic-ai/sdk`） | 日本語のトーン制御・構造化出力に強い |
-| PDF生成 | Puppeteer（HTML/CSSテンプレート→PDF） | 画像生成AIを使わず、CSSで完全にデザインをコントロールするため |
+| PDF生成 | Playwright（HTML/CSSテンプレート→PDF。当初案のPuppeteerから変更。理由は10章の進捗メモを参照） | 画像生成AIを使わず、CSSで完全にデザインをコントロールするため |
 | データ保存 | ブラウザ`localStorage`のみ | DBなしでMVPを最速で動かすため。社内の個人利用が前提 |
 | 認証 | なし | 社内限定・小規模利用のため今回は未実装 |
 | ホスティング | 未確定（当面はローカル/社内ネットワークでの起動でも可） | 個人利用のMVPのため急いで決めない。必要になれば別途検討 |
@@ -209,7 +209,7 @@ Supabase・組織/権限管理・Stripe課金・チーム機能は明示的に**
 | `<MessageCard>` | LINE案内文・送付時文・フォロー文をそれぞれ表示。編集欄＋コピー ボタン |
 | `<SocialPostCard>` | Threads3案・Instagram1案を表示。案ごとにコピー ボタン |
 | `<CopyButton>` | `navigator.clipboard`でテキストをコピーし、一時的に「コピーしました」を表示する共通ボタン |
-| `<PdfDocument>` | `GeneratedContent`を受け取り、マダナイブランドのHTML/CSSレイアウトに変換するプレゼンテーショナルコンポーネント。プレビュー画面(iframe相当)とPDFレンダリング(Puppeteerが読み込むHTML)の両方から同じコンポーネントを使う |
+| `<PdfDocument>` | `GeneratedContent`を受け取り、マダナイブランドのHTML/CSSレイアウトに変換するプレゼンテーショナルコンポーネント。プレビュー画面で使用する。PDFレンダリング(Playwrightが読み込むHTML)側は、Next.jsのapp/配下から`react-dom/server`を静的importできない制約のため、同じCSS/ラベルロジックを使うプレーンな文字列テンプレート(`lib/pdf/render-html.ts`)で別途生成する |
 
 「10項目バラバラの画面」ではなく、**PDF編集エリア（6カード）＋メッセージ編集エリア（3カード）＋SNSエリア（2カード）**という3ブロック構成で結果画面をまとめ、Notionのブロック編集のような一覧性を持たせる。
 
@@ -287,7 +287,7 @@ Layer 5: 出力フォーマット層
 
 ## 8. PDF生成方法
 
-- **方式**: HTML/CSSテンプレート（`components/pdf/PdfDocument.tsx`）をPuppeteerでPDF化する。画像生成AIは使わない。
+- **方式**: HTML/CSSテンプレート（`components/pdf/PdfDocument.tsx`と同じCSSを使う`lib/pdf/render-html.ts`）をPlaywrightでPDF化する。画像生成AIは使わない。
 - **テンプレート数**: 最初は**1種類のみ**。
 - **判型**: A4縦。
 - **デザイン仕様**:
@@ -298,7 +298,7 @@ Layer 5: 出力フォーマット層
   - 表紙・各ページヘッダーにマダナイのロゴを配置
   - AI感（無機質な配色・テンプレ感の強いアイコン多用）を避け、手触りのあるデザインにする
 - **プレビュー**: `/result/[id]/pdf`では`<PdfDocument>`をそのままブラウザ表示し、スマートフォンでも内容確認できるようレスポンシブ対応する（PDF自体はA4固定だが、プレビュー用のWeb表示は画面幅に応じて崩れないようにする）。
-- **ダウンロード**: プレビュー画面の「PDFダウンロード」ボタンから`/api/pdf`にPOSTし、サーバー側でPuppeteerが同じHTMLをA4サイズでレンダリングしてPDFバイナリを返す。
+- **ダウンロード**: プレビュー画面の「PDFダウンロード」ボタンから`/api/pdf`にPOSTし、サーバー側でPlaywrightが同じレイアウトのHTMLをA4サイズでレンダリングしてPDFバイナリを返す。
 
 ---
 
@@ -329,6 +329,11 @@ Layer 5: 出力フォーマット層
 | STEP4 | セクション編集・再生成・コピー機能 |
 | STEP5 | HTML/CSSによるPDFテンプレート作成（1種類） |
 | STEP6 | PDFプレビュー・ダウンロード（`/api/pdf`） |
+
+**進捗メモ（実装時の変更点）**:
+- STEP3の実通信確認（実際のAPIキーでClaude APIを叩く検証）はAPIキー未取得のため保留中。API接続コード自体はSTEP3で実装済み。
+- APIキー待ちの間、API不要なSTEP5・STEP6（PDFテンプレート・プレビュー・ダウンロード）を先に実装した。
+- PDF生成ライブラリはPuppeteerからPlaywrightに変更した（開発環境にPlaywright用Chromiumがプリインストールされていたため。機能的な違いはない）。
 
 ---
 
