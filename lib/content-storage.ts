@@ -52,16 +52,18 @@ export function deleteContent(id: string): void {
   writeAll(readAll().filter((c) => c.id !== id));
 }
 
+export function generateContentId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `content-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 /**
- * 入力内容からモックの生成結果を作成し、localStorageへ保存する。
- * STEP3ではこの関数の中身をClaude API呼び出しに差し替える
- * （呼び出し側のインターフェースは変えない想定）。
+ * 入力内容から固定モックの生成結果を作成し、localStorageへ保存する。
+ * 「サンプルで確認する」からのみ使用する（通常の生成はClaude APIを呼び出す）。
  */
 export function createAndSaveMockContent(input: ContentInput): GeneratedContent {
-  const id =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `content-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const id = generateContentId();
   const content = buildMockGeneratedContent(id, input);
   saveContent(content);
   return content;

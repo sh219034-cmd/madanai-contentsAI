@@ -1,6 +1,8 @@
 "use client";
 
-import type { GeneratedContent, MarketingStrategy } from "@/lib/types";
+import type { ContentInput, GeneratedContent, MarketingStrategy } from "@/lib/types";
+import { callRegenerateApi } from "@/lib/ai/regenerate-api-client";
+import { RegenerateButton } from "./RegenerateButton";
 import { SectionHeading } from "./SectionHeading";
 
 type StrategyField = {
@@ -18,9 +20,11 @@ const FIELDS: StrategyField[] = [
 ];
 
 export function StrategySection({
+  input,
   strategy,
   mutate,
 }: {
+  input: ContentInput;
   strategy: MarketingStrategy;
   mutate: (updater: (prev: GeneratedContent) => GeneratedContent) => void;
 }) {
@@ -31,28 +35,46 @@ export function StrategySection({
     }));
   };
 
+  const handleRegenerate = async (field: StrategyField, instruction: string) => {
+    const result = (await callRegenerateApi({
+      input,
+      kind: "strategyField",
+      label: field.label,
+      current: strategy[field.key],
+      instruction: instruction || undefined,
+    })) as { text: string };
+    handleChange(field.key, result.text);
+  };
+
   return (
     <section>
       <SectionHeading
         index={1}
         title="マーケティング戦略"
-        description="このテーマをどう届けるかの土台。STEP3以降はここがClaude APIの提案に置き換わります。"
+        description="このテーマをどう届けるかの土台。各項目はClaude APIで個別に再生成できます。"
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {FIELDS.map((field) => (
-          <label
+          <div
             key={field.key}
             className="flex flex-col gap-2 rounded-2xl border border-neutral-200 bg-white p-5"
           >
-            <span className="text-xs font-bold text-neutral-500">
-              {field.label}
-            </span>
-            <textarea
-              className="min-h-20 resize-y rounded-lg border border-transparent bg-transparent p-0 text-[15px] leading-relaxed text-neutral-900 outline-none focus:border-neutral-200 focus:bg-neutral-50 focus:p-2"
-              value={strategy[field.key]}
-              onChange={(e) => handleChange(field.key, e.target.value)}
-            />
-          </label>
+            <label className="flex flex-col gap-2">
+              <span className="text-xs font-bold text-neutral-500">
+                {field.label}
+              </span>
+              <textarea
+                className="min-h-20 resize-y rounded-lg border border-transparent bg-transparent p-0 text-[15px] leading-relaxed text-neutral-900 outline-none focus:border-neutral-200 focus:bg-neutral-50 focus:p-2"
+                value={strategy[field.key]}
+                onChange={(e) => handleChange(field.key, e.target.value)}
+              />
+            </label>
+            <div>
+              <RegenerateButton
+                onRegenerate={(instruction) => handleRegenerate(field, instruction)}
+              />
+            </div>
+          </div>
         ))}
       </div>
     </section>

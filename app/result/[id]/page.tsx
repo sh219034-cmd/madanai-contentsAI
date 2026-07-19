@@ -50,11 +50,15 @@ export default function ResultPage() {
     <div className="pb-24">
       <ResultHeader input={content.input} status={status} />
       <main className="mx-auto flex max-w-3xl flex-col gap-14 px-6 py-10">
-        <StrategySection strategy={content.strategy} mutate={mutate} />
-        <PdfSectionList pdf={content.pdf} mutate={mutate} />
-        <LineMessagesSection line={content.line} mutate={mutate} />
-        <SnsSection sns={content.sns} mutate={mutate} />
-        <CtaSection cta={content.cta} mutate={mutate} />
+        <StrategySection
+          input={content.input}
+          strategy={content.strategy}
+          mutate={mutate}
+        />
+        <PdfSectionList input={content.input} pdf={content.pdf} mutate={mutate} />
+        <LineMessagesSection input={content.input} line={content.line} mutate={mutate} />
+        <SnsSection input={content.input} sns={content.sns} mutate={mutate} />
+        <CtaSection input={content.input} cta={content.cta} mutate={mutate} />
       </main>
       <StickyActionBar
         content={content}

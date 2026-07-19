@@ -1,7 +1,9 @@
 "use client";
 
-import type { CtaInfo, GeneratedContent } from "@/lib/types";
+import type { ContentInput, CtaInfo, GeneratedContent } from "@/lib/types";
+import { callRegenerateApi } from "@/lib/ai/regenerate-api-client";
 import { CopyButton } from "./CopyButton";
+import { RegenerateButton } from "./RegenerateButton";
 import { SectionHeading } from "./SectionHeading";
 
 const FIELDS: { key: keyof CtaInfo; label: string }[] = [
@@ -13,14 +15,31 @@ const FIELDS: { key: keyof CtaInfo; label: string }[] = [
 ];
 
 export function CtaSection({
+  input,
   cta,
   mutate,
 }: {
+  input: ContentInput;
   cta: CtaInfo;
   mutate: (updater: (prev: GeneratedContent) => GeneratedContent) => void;
 }) {
   const handleChange = (key: keyof CtaInfo, value: string) => {
     mutate((prev) => ({ ...prev, cta: { ...prev.cta, [key]: value } }));
+  };
+
+  const handleRegenerate = async (
+    key: keyof CtaInfo,
+    label: string,
+    instruction: string,
+  ) => {
+    const result = (await callRegenerateApi({
+      input,
+      kind: "ctaField",
+      label,
+      current: cta[key],
+      instruction: instruction || undefined,
+    })) as { text: string };
+    handleChange(key, result.text);
   };
 
   return (
@@ -43,10 +62,15 @@ export function CtaSection({
               <CopyButton text={cta[field.key]} />
             </div>
             <textarea
-              className="w-full resize-y rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-[14.5px] leading-relaxed text-neutral-800 outline-none focus:border-neutral-300"
+              className="mb-3 w-full resize-y rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-[14.5px] leading-relaxed text-neutral-800 outline-none focus:border-neutral-300"
               rows={2}
               value={cta[field.key]}
               onChange={(e) => handleChange(field.key, e.target.value)}
+            />
+            <RegenerateButton
+              onRegenerate={(instruction) =>
+                handleRegenerate(field.key, field.label, instruction)
+              }
             />
           </div>
         ))}

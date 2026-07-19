@@ -1,12 +1,20 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, type FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { contentInputSchema, type ContentInputFormValues } from "@/lib/schema";
 import { TONE_PRESETS } from "@/lib/madanai-brand";
-import { createAndSaveMockContent } from "@/lib/content-storage";
+import {
+  createAndSaveMockContent,
+  generateContentId,
+  saveContent,
+} from "@/lib/content-storage";
 import { FIXED_DEMO_INPUT } from "@/lib/mock-generated-content";
+import { buildGeneratedContentFromAi } from "@/lib/ai/build-content";
+import type { GeneratedContentAiOutput } from "@/lib/ai/schema";
+import { GenerationProgress } from "./GenerationProgress";
 
 const defaultValues: ContentInputFormValues = {
   theme: "",
@@ -18,6 +26,9 @@ const defaultValues: ContentInputFormValues = {
   desiredAction: "",
   supplementary: "",
 };
+
+const STAGE_INTERVAL_MS = 1500;
+const LAST_AUTO_STAGE = 3; // 「最終調整しています」（index4）の手前まで自動で進める
 
 function FieldShell({
   label,
@@ -49,6 +60,10 @@ const inputClass =
 
 export function ContentInputForm() {
   const router = useRouter();
+  const [generating, setGenerating] = useState(false);
+  const [stageIndex, setStageIndex] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const stageTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
     register,
@@ -59,21 +74,92 @@ export function ContentInputForm() {
     defaultValues,
   });
 
+  const startStageAnimation = () => {
+    setStageIndex(0);
+    stageTimer.current = setInterval(() => {
+      setStageIndex((prev) => (prev < LAST_AUTO_STAGE ? prev + 1 : prev));
+    }, STAGE_INTERVAL_MS);
+  };
+
+  const stopStageAnimation = () => {
+    if (stageTimer.current) {
+      clearInterval(stageTimer.current);
+      stageTimer.current = null;
+    }
+  };
+
+  // stageTimerはこのイベントハンドラ内からのみ操作し、レンダー中には
+  // 読み書きしないため react-hooks/refs を無効化する。
+  // eslint-disable-next-line react-hooks/refs
   const onSubmit = handleSubmit(async (values) => {
-    // STEP3でClaude APIに接続するまでは、入力内容から固定モックの
-    // 生成結果を作りlocalStorageへ保存したうえで結果画面へ遷移する。
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const content = createAndSaveMockContent({
+    // 二重送信を防止する（生成中はフォーム自体が非表示になるが、念のため保持）
+    if (generating) return;
+
+    setErrorMessage(null);
+    setGenerating(true);
+    startStageAnimation();
+
+    const input = {
       ...values,
       supplementary: values.supplementary || undefined,
-    });
-    router.push(`/result/${content.id}`);
+    };
+
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      const json: { result?: unknown; message?: string } = await res.json();
+
+      if (!res.ok || !json.result) {
+        throw new Error(json.message ?? "生成に失敗しました。");
+      }
+
+      setStageIndex(4);
+      const id = generateContentId();
+      const content = buildGeneratedContentFromAi(
+        id,
+        input,
+        json.result as GeneratedContentAiOutput,
+      );
+
+      try {
+        saveContent(content);
+      } catch {
+        throw new Error(
+          "生成結果の保存に失敗しました。ブラウザのストレージ容量をご確認のうえ、もう一度お試しください。",
+        );
+      }
+
+      router.push(`/result/${content.id}`);
+    } catch (error) {
+      stopStageAnimation();
+      setGenerating(false);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "AIとの通信に失敗しました。入力内容は保存されています。時間を置いてもう一度お試しください。",
+      );
+    }
   });
 
   const handleUseSample = () => {
+    if (generating) return;
     const content = createAndSaveMockContent(FIXED_DEMO_INPUT);
     router.push(`/result/${content.id}`);
   };
+
+  if (generating) {
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="text-sm font-semibold text-neutral-700">
+          AIが内容を作成しています。しばらくお待ちください…
+        </p>
+        <GenerationProgress currentStage={stageIndex} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -171,6 +257,12 @@ export function ContentInputForm() {
             {...register("supplementary")}
           />
         </FieldShell>
+
+        {errorMessage ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+            {errorMessage}
+          </div>
+        ) : null}
 
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <button

@@ -1,7 +1,8 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import type { PdfSection } from "@/lib/types";
+import type { ContentInput, PdfSection } from "@/lib/types";
+import { callRegenerateApi } from "@/lib/ai/regenerate-api-client";
 import { CopyButton } from "./CopyButton";
 import { RegenerateButton } from "./RegenerateButton";
 
@@ -21,6 +22,7 @@ function buildCopyText(section: PdfSection): string {
 }
 
 export function PdfSectionCard({
+  input,
   section,
   label,
   canMoveUp,
@@ -30,6 +32,7 @@ export function PdfSectionCard({
   onMoveDown,
   onDelete,
 }: {
+  input: ContentInput;
   section: PdfSection;
   label: string;
   canMoveUp: boolean;
@@ -40,6 +43,27 @@ export function PdfSectionCard({
   onDelete: () => void;
 }) {
   const hasItems = section.type === "toc" || section.type === "checklist";
+
+  const handleRegenerate = async (instruction: string) => {
+    const result = (await callRegenerateApi({
+      input,
+      kind: "pdfSection",
+      label,
+      current: {
+        type: section.type,
+        title: section.title,
+        body: section.body,
+        items: section.items ?? [],
+      },
+      instruction: instruction || undefined,
+    })) as { title: string; body: string; items: string[] };
+    onUpdate({
+      title: result.title,
+      body: result.body,
+      items: result.items.length > 0 ? result.items : undefined,
+    });
+  };
+
   const itemCount =
     section.items?.filter((item) => item.trim().length > 0).length ?? 0;
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -118,7 +142,7 @@ export function PdfSectionCard({
 
       <div className="flex items-center gap-2">
         <CopyButton text={buildCopyText(section)} />
-        <RegenerateButton />
+        <RegenerateButton onRegenerate={handleRegenerate} />
       </div>
     </div>
   );

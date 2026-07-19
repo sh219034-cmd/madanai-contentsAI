@@ -1,6 +1,6 @@
 "use client";
 
-import type { GeneratedContent, PdfContent, PdfSection } from "@/lib/types";
+import type { ContentInput, GeneratedContent, PdfContent, PdfSection } from "@/lib/types";
 import { PdfSectionCard } from "./PdfSectionCard";
 import { SectionHeading } from "./SectionHeading";
 
@@ -34,9 +34,11 @@ function reindex(sections: PdfSection[]): PdfSection[] {
 }
 
 export function PdfSectionList({
+  input,
   pdf,
   mutate,
 }: {
+  input: ContentInput;
   pdf: PdfContent;
   mutate: (updater: (prev: GeneratedContent) => GeneratedContent) => void;
 }) {
@@ -96,6 +98,7 @@ export function PdfSectionList({
           return (
             <PdfSectionCard
               key={section.id}
+              input={input}
               section={section}
               label={sectionLabel(section, currentBodyIndex)}
               canMoveUp={index > 0}

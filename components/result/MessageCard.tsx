@@ -8,12 +8,14 @@ export function MessageCard({
   badge,
   value,
   onChange,
+  onRegenerate,
   minHeight = "min-h-32",
 }: {
   title: string;
   badge?: string;
   value: string;
   onChange: (value: string) => void;
+  onRegenerate: (instruction: string) => Promise<void>;
   minHeight?: string;
 }) {
   return (
@@ -38,7 +40,7 @@ export function MessageCard({
       />
       <div className="flex items-center gap-2">
         <CopyButton text={value} />
-        <RegenerateButton />
+        <RegenerateButton onRegenerate={onRegenerate} />
       </div>
     </div>
   );
