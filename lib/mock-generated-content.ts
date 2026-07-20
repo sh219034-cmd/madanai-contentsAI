@@ -22,7 +22,9 @@ export const FIXED_DEMO_INPUT: ContentInput = {
   offerGoal:
     "自社ホームページの改善点に気づいてもらい、マダナイの無料相談につなげる",
   pageCount: 12,
-  tone: "分かりやすい、信頼感がある、煽らない、専門用語を使いすぎない",
+  // 入力画面の「文章の雰囲気」はプリセット選択式(TONE_PRESETS)のため、
+  // 再分析でフォームへ復元した際に選択肢と一致するよう、プリセットの文言をそのまま使う。
+  tone: "落ち着いて丁寧",
   desiredAction: "マダナイのAI×WEB無料相談に申し込む",
   supplementary: "",
 };

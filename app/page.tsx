@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ContentInputForm } from "@/components/input/ContentInputForm";
 import { MADANAI_BRAND } from "@/lib/madanai-brand";
 
@@ -22,7 +23,9 @@ export default function Home() {
         </p>
       </div>
 
-      <ContentInputForm />
+      <Suspense fallback={<p className="text-sm text-neutral-400">読み込み中...</p>}>
+        <ContentInputForm />
+      </Suspense>
     </main>
   );
 }

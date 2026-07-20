@@ -260,15 +260,13 @@ export default function StrategyPage() {
           </div>
         </section>
 
-        {isChangeMode ? (
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            className="w-fit text-xs font-semibold text-neutral-400 underline decoration-neutral-300 underline-offset-4 transition hover:text-neutral-700"
-          >
-            再分析する（入力内容を変更する場合）
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={() => router.push(`/?editAnalysisId=${id}`)}
+          className="w-fit text-xs font-semibold text-neutral-400 underline decoration-neutral-300 underline-offset-4 transition hover:text-neutral-700"
+        >
+          再分析する（入力内容を変更する場合）
+        </button>
       </main>
 
       {pendingCandidate ? (

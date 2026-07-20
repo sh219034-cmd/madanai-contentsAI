@@ -1,18 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, type FieldError } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { contentInputSchema, type ContentInputFormValues } from "@/lib/schema";
 import { TONE_PRESETS } from "@/lib/madanai-brand";
-import { generateContentId } from "@/lib/content-storage";
-import { saveStrategyAnalysis } from "@/lib/strategy-storage";
+import { generateContentId, getContentById } from "@/lib/content-storage";
+import { getStrategyAnalysis, saveStrategyAnalysis } from "@/lib/strategy-storage";
 import { FIXED_DEMO_INPUT } from "@/lib/mock-generated-content";
 import { buildMockStrategyAnalysis } from "@/lib/mock-strategy-analysis";
 import { buildStrategyAnalysisFromAi } from "@/lib/ai/build-strategy";
 import type { StrategyAnalysisAiOutput } from "@/lib/ai/strategy-schema";
-import type { GenerationUsage } from "@/lib/types";
+import type { ContentInput, GenerationUsage } from "@/lib/types";
 import { GenerationProgress, STRATEGY_ANALYSIS_STAGES } from "./GenerationProgress";
 
 const defaultValues: ContentInputFormValues = {
@@ -28,6 +29,46 @@ const defaultValues: ContentInputFormValues = {
 
 const STAGE_INTERVAL_MS = 1200;
 const LAST_AUTO_STAGE = STRATEGY_ANALYSIS_STAGES.length - 2;
+
+type ReanalysisSource = { sourceId: string; sourceType: "strategy" | "result" } | null;
+
+function toContentInput(values: ContentInputFormValues): ContentInput {
+  return { ...values, supplementary: values.supplementary || undefined };
+}
+
+/**
+ * ?editAnalysisId=xxx（戦略画面から）または ?sourceContentId=xxx（結果画面から）の
+ * クエリパラメータから、元のContentInputを復元する。見つからない場合はundefinedを返し、
+ * 呼び出し側は通常の空フォームとして表示する（エラーで画面を止めない）。
+ */
+function resolveReanalysisSource(
+  searchParams: URLSearchParams,
+): { input: ContentInput; source: ReanalysisSource } | undefined {
+  const editAnalysisId = searchParams.get("editAnalysisId");
+  if (editAnalysisId) {
+    const analysis = getStrategyAnalysis(editAnalysisId);
+    if (analysis) {
+      return { input: analysis.input, source: { sourceId: editAnalysisId, sourceType: "strategy" } };
+    }
+    return undefined;
+  }
+
+  const sourceContentId = searchParams.get("sourceContentId");
+  if (sourceContentId) {
+    const content = getContentById(sourceContentId);
+    if (content) {
+      return { input: content.input, source: { sourceId: sourceContentId, sourceType: "result" } };
+    }
+    // GeneratedContentが見つからない場合は、同じidのStrategyAnalysisにフォールバックする
+    const analysis = getStrategyAnalysis(sourceContentId);
+    if (analysis) {
+      return { input: analysis.input, source: { sourceId: sourceContentId, sourceType: "result" } };
+    }
+    return undefined;
+  }
+
+  return undefined;
+}
 
 function FieldShell({
   label,
@@ -59,19 +100,32 @@ const inputClass =
 
 export function ContentInputForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [analyzing, setAnalyzing] = useState(false);
   const [stageIndex, setStageIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [reanalysis, setReanalysis] = useState<ReanalysisSource>(null);
   const stageTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
     register,
     handleSubmit,
+    reset,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<ContentInputFormValues>({
     resolver: zodResolver(contentInputSchema),
     defaultValues,
   });
+
+  useEffect(() => {
+    const resolved = resolveReanalysisSource(searchParams);
+    if (!resolved) return;
+    // localStorageの読み込みはマウント後にのみ可能なため、ここで復元する。
+    reset({ ...resolved.input, supplementary: resolved.input.supplementary ?? "" });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 上記の理由により、マウント後の同期読み込みが唯一の取得手段のため
+    setReanalysis(resolved.source);
+  }, [searchParams, reset]);
 
   const startStageAnimation = () => {
     setStageIndex(0);
@@ -98,10 +152,7 @@ export function ContentInputForm() {
     setAnalyzing(true);
     startStageAnimation();
 
-    const input = {
-      ...values,
-      supplementary: values.supplementary || undefined,
-    };
+    const input = toContentInput(values);
 
     try {
       const res = await fetch("/api/strategy", {
@@ -155,8 +206,11 @@ export function ContentInputForm() {
 
   const handleUseSample = () => {
     if (analyzing) return;
+    // 再分析モードでは、フォームに復元・編集済みの内容をサンプル分析にも使う
+    // （通常モードでは空フォームのままでも試せるよう、固定デモ入力を使う）
+    const input = reanalysis ? toContentInput(getValues()) : FIXED_DEMO_INPUT;
     const id = generateContentId();
-    const analysis = buildMockStrategyAnalysis(id, FIXED_DEMO_INPUT);
+    const analysis = buildMockStrategyAnalysis(id, input);
     saveStrategyAnalysis(analysis);
     router.push(`/strategy/${analysis.id}`);
   };
@@ -174,6 +228,23 @@ export function ContentInputForm() {
 
   return (
     <div className="flex flex-col gap-8">
+      {reanalysis ? (
+        <div className="rounded-xl border border-fuchsia-100 bg-fuchsia-50/60 px-4 py-3">
+          <p className="text-sm font-semibold text-neutral-700">
+            過去の入力内容を引き継いでいます。内容を修正して、もう一度分析できます。
+          </p>
+          <Link
+            href={
+              reanalysis.sourceType === "strategy"
+                ? `/strategy/${reanalysis.sourceId}`
+                : `/result/${reanalysis.sourceId}`
+            }
+            className="mt-1 inline-block text-xs font-bold text-fuchsia-600 underline underline-offset-4"
+          >
+            {reanalysis.sourceType === "strategy" ? "← 元の戦略画面へ戻る" : "← 元の結果画面へ戻る"}
+          </Link>
+        </div>
+      ) : null}
       <form onSubmit={onSubmit} className="flex flex-col gap-6">
         <FieldShell
           label="コンテンツのテーマ"
@@ -281,7 +352,9 @@ export function ContentInputForm() {
             disabled={isSubmitting}
             className="inline-flex w-fit items-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ff6ec7_0%,#a855f7_55%,#7c3aed_100%)] px-6 py-3.5 text-[15px] font-bold text-white shadow-[0_8px_20px_rgba(168,85,247,0.28)] transition disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "分析中..." : "AIマーケティング担当者に相談する →"}
+            {isSubmitting
+              ? "分析中..."
+              : `${reanalysis ? "修正した内容で再分析する" : "AIマーケティング担当者に相談する"} →`}
           </button>
           <button
             type="button"
@@ -289,7 +362,7 @@ export function ContentInputForm() {
             disabled={isSubmitting}
             className="text-sm font-semibold text-neutral-500 underline decoration-neutral-300 underline-offset-4 transition hover:text-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            サンプルで確認する
+            {reanalysis ? "修正した内容でサンプル分析する" : "サンプルで確認する"}
           </button>
         </div>
       </form>

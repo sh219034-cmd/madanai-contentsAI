@@ -10,12 +10,20 @@ function StrategyBadgeRow({ id, strategy }: { id: string; strategy: StrategyCand
       <span className="text-[11px] font-bold text-neutral-400">選択中の戦略</span>
       <span className="text-[13px] font-extrabold text-neutral-900">{strategy.name}</span>
       <StarRating score={strategy.recommendationScore} />
-      <Link
-        href={`/strategy/${id}`}
-        className="ml-auto rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[11.5px] font-bold text-neutral-600 transition hover:border-neutral-300"
-      >
-        戦略を変更
-      </Link>
+      <div className="ml-auto flex items-center gap-2">
+        <Link
+          href={`/?sourceContentId=${id}`}
+          className="text-[11px] font-semibold text-neutral-400 underline decoration-neutral-300 underline-offset-4 transition hover:text-neutral-700"
+        >
+          入力を修正して再分析
+        </Link>
+        <Link
+          href={`/strategy/${id}`}
+          className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[11.5px] font-bold text-neutral-600 transition hover:border-neutral-300"
+        >
+          戦略を変更
+        </Link>
+      </div>
     </div>
   );
 }
