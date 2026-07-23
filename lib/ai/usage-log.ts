@@ -1,7 +1,7 @@
 import "server-only";
 import { estimateCostUsd } from "./pricing";
 
-export type GenerationProcessType = "generate" | "regenerate" | "strategy";
+export type GenerationProcessType = "generate" | "regenerate" | "strategy" | "performance-review";
 
 export type UsageSummary = {
   model: string;

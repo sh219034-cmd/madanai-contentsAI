@@ -83,7 +83,7 @@ export type CtaInfo = {
  */
 export type GenerationUsage = {
   model: string;
-  processType: "generate" | "regenerate" | "strategy";
+  processType: "generate" | "regenerate" | "strategy" | "performance-review";
   inputTokens: number;
   outputTokens: number;
   estimatedCostUsd: number | null;
@@ -175,4 +175,69 @@ export type HistoryItem = {
   selectedStrategyName?: string;
   hasAnalysis: boolean;
   hasContent: boolean;
+};
+
+/**
+ * 成果データの大分類。channelとは別の軸で持つ（例:
+ * 「Instagram投稿」「Instagramリール」はどちらもcontentType="sns"）。
+ * 将来コンテンツ種別を追加する際は、ここへ追記するだけでよい。
+ */
+export type PerformanceContentType = "pdf" | "line" | "sns" | "other";
+
+/**
+ * 成果を記録する媒体。将来の拡張（GA連携・LINE API連携等）に備え、
+ * contentTypeとは別の拡張可能な文字列リテラルunionとして持つ。
+ */
+export type PerformanceChannel =
+  | "threads"
+  | "instagram-post"
+  | "instagram-reel"
+  | "line"
+  | "blog"
+  | "lp"
+  | "pdf-offer"
+  | "website"
+  | "other";
+
+/**
+ * 成果指標。媒体によって取得できる指標が異なるため、すべて任意項目とする。
+ * 未入力の指標は「存在しないデータ」として扱い、0で補完しない。
+ */
+export type PerformanceMetrics = {
+  impressions?: number; // 表示回数
+  reach?: number; // リーチ
+  views?: number; // 閲覧数
+  likes?: number; // いいね
+  comments?: number; // コメント
+  saves?: number; // 保存
+  shares?: number; // シェア
+  profileVisits?: number; // プロフィールアクセス
+  linkClicks?: number; // リンククリック
+  lineAdds?: number; // LINE登録
+  formSubmissions?: number; // フォーム送信
+  inquiries?: number; // 問い合わせ
+  contracts?: number; // 契約
+  revenue?: number; // 売上
+};
+
+/**
+ * 公開済みコンテンツの成果記録。GeneratedContent/StrategyAnalysisとは
+ * 別のlocalStorageキー（madanai:performance-records）に保存する。
+ * 機械学習の再学習は行わず、次回の戦略分析プロンプトへ参考情報として
+ * 渡すためだけに使う（lib/performance-relevance.ts）。
+ */
+export type PerformanceRecord = {
+  id: string;
+  contentId: string; // StrategyAnalysis/GeneratedContentのidと対応（紐付け先が消えても記録自体は残す）
+  contentType: PerformanceContentType;
+  channel: PerformanceChannel;
+  publishedAt: string; // 公開日（YYYY-MM-DD）
+  measurementPeriod: string; // 計測期間（自由記述。例:「公開後7日間」）
+  strategyName: string; // 記録時点で選択されていた戦略名（自由記述、手動修正可）
+  target: string; // ターゲット概要
+  title: string; // コンテンツ名
+  notes: string; // メモ（良かった点・改善点など自由記述）
+  metrics: PerformanceMetrics;
+  createdAt: string;
+  updatedAt: string;
 };

@@ -3,15 +3,17 @@ import {
   buildPromptPriorityNotice,
   buildMarketingPrinciplesSection,
   buildStrategyAnalysisPrinciplesSection,
+  buildPastPerformanceGuidance,
 } from "./marketing-principles";
 import type { ContentInput } from "@/lib/types";
+import type { PerformanceSummaryForPrompt } from "@/lib/performance-schema";
 
 /**
  * AIマーケティング分析（戦略提案）専用のシステムプロンプト。
  * lib/ai/madanai-system-prompt.ts（コンテンツ生成用）とは役割が異なる：
  * こちらは文章を書く前に、複数の戦略を比較検討して提案する段階を担う。
  */
-export function buildStrategySystemPrompt(): string {
+export function buildStrategySystemPrompt(hasPastPerformanceData: boolean): string {
   const ngList = MADANAI_BRAND.ngExpressions.map((word) => `「${word}」`).join("、");
 
   return `あなたはマダナイ専属の「AIマーケティング責任者」です。まだ文章は書きません。
@@ -31,6 +33,8 @@ ${MADANAI_BRAND.positioning}
 ${buildMarketingPrinciplesSection()}
 
 ${buildStrategyAnalysisPrinciplesSection()}
+
+${buildPastPerformanceGuidance(hasPastPerformanceData)}
 
 【戦略提案のルール】
 ・最低5案を提案すること
@@ -56,7 +60,10 @@ ${buildStrategyAnalysisPrinciplesSection()}
 必ず指定されたJSON構造のみで出力すること。Markdownのコードブロックや説明文、前置きは一切含めないこと。`;
 }
 
-export function buildStrategyUserPrompt(input: ContentInput): string {
+export function buildStrategyUserPrompt(
+  input: ContentInput,
+  pastPerformance?: PerformanceSummaryForPrompt[],
+): string {
   const lines = [
     "以下の情報をもとに、マーケティング戦略の候補を分析・提案してください。",
     "",
@@ -71,6 +78,18 @@ export function buildStrategyUserPrompt(input: ContentInput): string {
 
   if (input.supplementary && input.supplementary.trim().length > 0) {
     lines.push(`補足情報: ${input.supplementary}`);
+  }
+
+  if (pastPerformance && pastPerformance.length > 0) {
+    lines.push(
+      "",
+      "【参考: 関連性が高いと判断された過去の成果データ（要約・参考情報。詳細はシステムプロンプトの扱い方を参照）】",
+      ...pastPerformance.map(
+        (p, i) =>
+          `${i + 1}. 媒体: ${p.channelLabel} / 戦略: ${p.strategyName} / ターゲット概要: ${p.targetSummary} / ` +
+          `テーマ概要: ${p.themeSummary} / 成果指標: ${p.metricsSummary} / メモ: ${p.memo || "（メモなし）"}`,
+      ),
+    );
   }
 
   lines.push(

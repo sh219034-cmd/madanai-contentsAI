@@ -32,6 +32,8 @@ export const AI_CONFIG = {
     strategy: resolveModel(process.env.ANTHROPIC_STRATEGY_MODEL, "claude-sonnet-5"),
     // 将来の高品質モード用（現時点ではUIから未使用）
     premium: resolveModel(process.env.ANTHROPIC_PREMIUM_MODEL, "claude-opus-4-8"),
+    // 成果記録1件のAI振り返り（POST /api/performance-review）
+    performanceReview: resolveModel(process.env.ANTHROPIC_PERFORMANCE_REVIEW_MODEL, "claude-sonnet-5"),
   },
   // 特典PDF13セクション＋LINE3文＋SNS投稿＋CTA5項目をJSONのみで返す想定。
   maxOutputTokens: 8000,
@@ -39,6 +41,8 @@ export const AI_CONFIG = {
   regenerateMaxOutputTokens: 2000,
   // 戦略候補5〜9件分（各案は短文フィールドのみ）のため中程度で足りる。
   strategyMaxOutputTokens: 4000,
+  // AI振り返りは5項目×数個の短文リストのみのため小さめで足りる。
+  performanceReviewMaxOutputTokens: 2000,
   /**
    * 用途別の思考の深さ（'low'|'medium'|'high'|'xhigh'|'max'、
    * @anthropic-ai/sdk の型定義で確認済み）。
@@ -52,6 +56,8 @@ export const AI_CONFIG = {
     generation: "high" as const,
     strategy: "high" as const,
     regeneration: "medium" as const,
+    // 成果記録1件の振り返りのみで比較検討タスクではないため、mediumで十分とする。
+    performanceReview: "medium" as const,
   },
   // サーバーレス関数のタイムアウトより十分短く、かつAPIの遅延に耐えられる値。
   requestTimeoutMs: 55_000,

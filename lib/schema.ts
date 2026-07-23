@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { performanceSummarySchema } from "./performance-schema";
 
 /**
  * ContentInput のバリデーションスキーマ。
@@ -82,4 +83,15 @@ export const strategyCandidateSchema = z.object({
 export const generateRequestSchema = z.object({
   input: contentInputSchema,
   strategy: strategyCandidateSchema,
+});
+
+/**
+ * POST /api/strategy のリクエストボディ。pastPerformanceは
+ * ContentInputFormがクライアント側(localStorage)で関連性の高い記録を
+ * 選び出し要約したもの（最大5件）。サーバーはlocalStorageへアクセスできない
+ * ため、この形で受け取る。
+ */
+export const strategyRequestSchema = z.object({
+  input: contentInputSchema,
+  pastPerformance: z.array(performanceSummarySchema).max(5).optional(),
 });

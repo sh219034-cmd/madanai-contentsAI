@@ -13,6 +13,7 @@ import { RecommendedStrategyCard } from "@/components/strategy/RecommendedStrate
 import { StrategyCandidateCard } from "@/components/strategy/StrategyCandidateCard";
 import { StrategyChangeConfirmModal } from "@/components/strategy/StrategyChangeConfirmModal";
 import { HistoryLink } from "@/components/history/HistoryLink";
+import { PerformanceLink } from "@/components/performance/PerformanceLink";
 
 const STAGE_INTERVAL_MS = 1500;
 const LAST_AUTO_STAGE = CONTENT_GENERATION_STAGES.length - 2;
@@ -212,7 +213,10 @@ export default function StrategyPage() {
             >
               ← 入力画面へ戻る
             </Link>
-            <HistoryLink />
+            <div className="flex items-center gap-3">
+              <PerformanceLink />
+              <HistoryLink />
+            </div>
           </div>
           <span className="inline-flex w-fit items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-fuchsia-600">
             <span className="h-1.5 w-1.5 rounded-full bg-[linear-gradient(135deg,#ff6ec7_0%,#a855f7_55%,#7c3aed_100%)]" />

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { contentInputSchema } from "@/lib/schema";
+import { strategyRequestSchema } from "@/lib/schema";
 import { analyzeStrategyWithAi } from "@/lib/ai/strategy-client";
 import { mapGenerationError } from "@/lib/ai/error-messages";
 
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = contentInputSchema.safeParse(body);
+  const parsed = strategyRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       {
@@ -26,7 +26,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { output, usage } = await analyzeStrategyWithAi(parsed.data);
+    const { output, usage } = await analyzeStrategyWithAi(
+      parsed.data.input,
+      parsed.data.pastPerformance,
+    );
     return NextResponse.json({ result: output, usage });
   } catch (error) {
     const mapped = mapGenerationError(error);

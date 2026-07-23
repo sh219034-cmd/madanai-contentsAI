@@ -12,6 +12,8 @@ import { getStrategyAnalysis, saveStrategyAnalysis } from "@/lib/strategy-storag
 import { FIXED_DEMO_INPUT } from "@/lib/mock-generated-content";
 import { buildMockStrategyAnalysis } from "@/lib/mock-strategy-analysis";
 import { buildStrategyAnalysisFromAi } from "@/lib/ai/build-strategy";
+import { getAllPerformanceRecords } from "@/lib/performance-storage";
+import { findRelevantPerformanceRecords, buildPerformanceSummaryForPrompt } from "@/lib/performance-relevance";
 import type { StrategyAnalysisAiOutput } from "@/lib/ai/strategy-schema";
 import type { ContentInput, GenerationUsage } from "@/lib/types";
 import { GenerationProgress, STRATEGY_ANALYSIS_STAGES } from "./GenerationProgress";
@@ -153,12 +155,16 @@ export function ContentInputForm() {
     startStageAnimation();
 
     const input = toContentInput(values);
+    // 過去の成果データはlocalStorageにのみ保存されており、サーバー(Route Handler)からは
+    // アクセスできないため、ここで関連性の高い記録を選び出し要約してから送信する。
+    const relevantPerformance = findRelevantPerformanceRecords(input, getAllPerformanceRecords());
+    const pastPerformance = buildPerformanceSummaryForPrompt(relevantPerformance);
 
     try {
       const res = await fetch("/api/strategy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ input, pastPerformance }),
       });
       const json: {
         result?: unknown;

@@ -12,12 +12,14 @@ import { SnsSection } from "@/components/result/SnsSection";
 import { CtaSection } from "@/components/result/CtaSection";
 import { StickyActionBar } from "@/components/result/StickyActionBar";
 import { InputPreviewPanel } from "@/components/result/InputPreviewPanel";
+import { PerformanceRecordFormModal } from "@/components/performance/PerformanceRecordFormModal";
 
 export default function ResultPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const { content, status, mutate } = useGeneratedContent(id);
   const [showInputPanel, setShowInputPanel] = useState(false);
+  const [showPerformanceModal, setShowPerformanceModal] = useState(false);
 
   if (status === "loading") {
     return (
@@ -54,6 +56,7 @@ export default function ResultPage() {
         status={status}
         selectedStrategy={content.selectedStrategy}
         lastUsage={content.lastUsage}
+        onRecordPerformance={() => setShowPerformanceModal(true)}
       />
       <main className="mx-auto flex max-w-3xl flex-col gap-14 px-6 py-10">
         <StrategySection
@@ -75,6 +78,18 @@ export default function ResultPage() {
         <InputPreviewPanel
           input={content.input}
           onClose={() => setShowInputPanel(false)}
+        />
+      ) : null}
+      {showPerformanceModal ? (
+        <PerformanceRecordFormModal
+          prefill={{
+            contentId: content.id,
+            title: content.input.theme,
+            target: content.input.target,
+            strategyName: content.selectedStrategy.name,
+          }}
+          onClose={() => setShowPerformanceModal(false)}
+          onSaved={() => setShowPerformanceModal(false)}
         />
       ) : null}
     </div>

@@ -3,15 +3,17 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { AI_CONFIG } from "./config";
-import { buildStrategySystemPrompt, buildStrategyUserPrompt } from "./strategy-prompt";
-import { strategyAnalysisAiSchema, type StrategyAnalysisAiOutput } from "./strategy-schema";
+import {
+  buildPerformanceReviewSystemPrompt,
+  buildPerformanceReviewUserPrompt,
+} from "./performance-review-prompt";
+import { performanceReviewAiSchema, type PerformanceReviewAiOutput } from "./performance-review-schema";
 import { recordUsage, type UsageSummary } from "./usage-log";
 import { GenerationError, classifyError, getApiKeyOrThrow } from "./errors";
-import type { ContentInput } from "@/lib/types";
-import type { PerformanceSummaryForPrompt } from "@/lib/performance-schema";
+import type { PerformanceRecord } from "@/lib/types";
 
-export type StrategyAnalysisResult = {
-  output: StrategyAnalysisAiOutput;
+export type PerformanceReviewResult = {
+  output: PerformanceReviewAiOutput;
   usage: UsageSummary;
 };
 
@@ -22,17 +24,16 @@ function getClient(): Anthropic {
 const MAX_ATTEMPTS = 2;
 
 /**
- * 入力内容からClaude APIを呼び出し、戦略候補(最低5件)を分析・提案する。
- * これはコンテンツ生成(generateContentFromAi)より前段のステップで、
- * ここではまだPDF/LINE/SNS文章は生成しない。
+ * 成果記録1件をもとにClaude APIを呼び出し、振り返り(良かった要因/改善点/
+ * 次回試すべき戦略/継続すべき要素/変えるべき要素)を生成する。
+ * 他の成果記録・生成本文・個人情報はここでは一切送らない
+ * （record自体に個人情報を含めない運用は入力フォーム側の責務）。
  */
-export async function analyzeStrategyWithAi(
-  input: ContentInput,
-  pastPerformance?: PerformanceSummaryForPrompt[],
-): Promise<StrategyAnalysisResult> {
+export async function reviewPerformanceWithAi(
+  record: PerformanceRecord,
+): Promise<PerformanceReviewResult> {
   const client = getClient();
-  const model = AI_CONFIG.models.strategy;
-  const hasPastPerformanceData = Boolean(pastPerformance && pastPerformance.length > 0);
+  const model = AI_CONFIG.models.performanceReview;
   let lastError: GenerationError | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -40,27 +41,27 @@ export async function analyzeStrategyWithAi(
       const response = await client.messages.parse(
         {
           model,
-          max_tokens: AI_CONFIG.strategyMaxOutputTokens,
+          max_tokens: AI_CONFIG.performanceReviewMaxOutputTokens,
           thinking: { type: "adaptive" },
           output_config: {
-            effort: AI_CONFIG.effortByPurpose.strategy,
-            format: zodOutputFormat(strategyAnalysisAiSchema),
+            effort: AI_CONFIG.effortByPurpose.performanceReview,
+            format: zodOutputFormat(performanceReviewAiSchema),
           },
-          system: buildStrategySystemPrompt(hasPastPerformanceData),
-          messages: [{ role: "user", content: buildStrategyUserPrompt(input, pastPerformance) }],
+          system: buildPerformanceReviewSystemPrompt(),
+          messages: [{ role: "user", content: buildPerformanceReviewUserPrompt(record) }],
         },
         { timeout: AI_CONFIG.requestTimeoutMs },
       );
 
       const usage = recordUsage({
         model,
-        processType: "strategy",
+        processType: "performance-review",
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
       });
 
       if (response.stop_reason === "refusal") {
-        throw new GenerationError("refusal", "strategy analysis refused");
+        throw new GenerationError("refusal", "performance review refused");
       }
       if (!response.parsed_output) {
         throw new GenerationError("parse_failed", "structured output did not validate");
@@ -75,5 +76,5 @@ export async function analyzeStrategyWithAi(
     }
   }
 
-  throw lastError ?? new GenerationError("api_error", "strategy analysis failed");
+  throw lastError ?? new GenerationError("api_error", "performance review failed");
 }

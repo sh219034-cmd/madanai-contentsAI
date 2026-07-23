@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { ContentInputForm } from "@/components/input/ContentInputForm";
 import { MADANAI_BRAND } from "@/lib/madanai-brand";
 import { HistoryLink } from "@/components/history/HistoryLink";
+import { PerformanceLink } from "@/components/performance/PerformanceLink";
 
 export default function Home() {
   return (
@@ -14,7 +15,10 @@ export default function Home() {
               {MADANAI_BRAND.name}
             </span>
           </div>
-          <HistoryLink />
+          <div className="flex items-center gap-3">
+            <PerformanceLink />
+            <HistoryLink />
+          </div>
         </div>
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-neutral-400">
           特典コンテンツ作成

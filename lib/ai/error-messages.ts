@@ -73,3 +73,20 @@ export function mapGenerationError(error: unknown): GenerationErrorResponse {
       "予期しないエラーが発生しました。入力内容は保存されていますので、もう一度お試しください。",
   };
 }
+
+/**
+ * AI振り返り(POST /api/performance-review)専用のエラーメッセージ。
+ * mapGenerationErrorとほぼ同じだが、この機能には「サンプルで確認する」の
+ * ような代替手段が無いため、missing_api_keyのメッセージ文言だけを変える。
+ * APIキーが無い場合にモックへ黙って切り替えることはしない。
+ */
+export function mapPerformanceReviewError(error: unknown): GenerationErrorResponse {
+  if (error instanceof GenerationError && error.code === "missing_api_key") {
+    return {
+      status: 503,
+      code: error.code,
+      message: "AI振り返り機能はまだ利用できません。管理者にANTHROPIC_API_KEYの設定をご確認ください。",
+    };
+  }
+  return mapGenerationError(error);
+}

@@ -7,6 +7,8 @@ import type { HistoryItem, HistoryStatus } from "@/lib/types";
 import { getHistoryItems, duplicateGeneratedContent, deleteHistoryEntry } from "@/lib/history-storage";
 import { HistoryCard } from "@/components/history/HistoryCard";
 import { HistoryDeleteConfirmModal } from "@/components/history/HistoryDeleteConfirmModal";
+import { PerformanceLink } from "@/components/performance/PerformanceLink";
+import { PerformanceRecordFormModal } from "@/components/performance/PerformanceRecordFormModal";
 
 type SortOption = "createdDesc" | "createdAsc" | "updatedDesc";
 
@@ -29,6 +31,7 @@ export default function HistoryPage() {
   const [statusFilter, setStatusFilter] = useState<HistoryStatus | "all">("all");
   const [sortBy, setSortBy] = useState<SortOption>("createdDesc");
   const [pendingDelete, setPendingDelete] = useState<HistoryItem | null>(null);
+  const [performanceTarget, setPerformanceTarget] = useState<HistoryItem | null>(null);
 
   useEffect(() => {
     // localStorageはサーバーに存在せず、マウント後の同期読み込みが唯一の取得手段のため
@@ -65,6 +68,7 @@ export default function HistoryPage() {
               ← 入力画面へ戻る
             </Link>
             <h1 className="text-sm font-extrabold text-neutral-900">作成履歴</h1>
+            <PerformanceLink />
           </div>
         </header>
         <main className="mx-auto flex max-w-4xl flex-col items-center gap-4 px-6 py-24 text-center">
@@ -98,7 +102,10 @@ export default function HistoryPage() {
             <Link href="/" className="text-xs font-semibold text-neutral-500 transition hover:text-neutral-800">
               ← 入力画面へ戻る
             </Link>
-            <span className="text-[11px] font-semibold text-neutral-400">{items.length}件</span>
+            <div className="flex items-center gap-3">
+              <PerformanceLink />
+              <span className="text-[11px] font-semibold text-neutral-400">{items.length}件</span>
+            </div>
           </div>
           <h1 className="text-xl font-extrabold tracking-tight text-neutral-900 sm:text-2xl">作成履歴</h1>
           <p className="text-sm leading-6 text-neutral-500">
@@ -154,6 +161,7 @@ export default function HistoryPage() {
               item={item}
               onDuplicate={handleDuplicate}
               onDelete={setPendingDelete}
+              onRecordPerformance={setPerformanceTarget}
             />
           ))
         )}
@@ -164,6 +172,19 @@ export default function HistoryPage() {
           item={pendingDelete}
           onCancel={() => setPendingDelete(null)}
           onConfirm={handleDeleteConfirm}
+        />
+      ) : null}
+
+      {performanceTarget ? (
+        <PerformanceRecordFormModal
+          prefill={{
+            contentId: performanceTarget.id,
+            title: performanceTarget.theme,
+            target: performanceTarget.target,
+            strategyName: performanceTarget.selectedStrategyName ?? "",
+          }}
+          onClose={() => setPerformanceTarget(null)}
+          onSaved={() => setPerformanceTarget(null)}
         />
       ) : null}
     </div>

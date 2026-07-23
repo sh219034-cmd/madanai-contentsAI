@@ -69,10 +69,12 @@ export function HistoryCard({
   item,
   onDuplicate,
   onDelete,
+  onRecordPerformance,
 }: {
   item: HistoryItem;
   onDuplicate: (id: string) => void;
   onDelete: (item: HistoryItem) => void;
+  onRecordPerformance: (item: HistoryItem) => void;
 }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-neutral-200 bg-white p-5">
@@ -107,6 +109,7 @@ export function HistoryCard({
             <ActionLink href={`/result/${item.id}/pdf`}>PDFプレビュー</ActionLink>
             <ActionLink href={`/strategy/${item.id}`}>戦略を変更</ActionLink>
             <ActionButton onClick={() => onDuplicate(item.id)}>複製</ActionButton>
+            <ActionButton onClick={() => onRecordPerformance(item)}>成果を記録</ActionButton>
           </>
         ) : (
           <>

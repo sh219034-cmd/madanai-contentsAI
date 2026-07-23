@@ -3,9 +3,18 @@ import type { ContentInput, GenerationUsage, StrategyCandidate } from "@/lib/typ
 import type { SaveStatus } from "@/lib/hooks/useGeneratedContent";
 import { StarRating } from "@/components/strategy/StarRating";
 import { HistoryLink } from "@/components/history/HistoryLink";
+import { PerformanceLink } from "@/components/performance/PerformanceLink";
 import { SaveStatusBadge } from "./SaveStatusBadge";
 
-function StrategyBadgeRow({ id, strategy }: { id: string; strategy: StrategyCandidate }) {
+function StrategyBadgeRow({
+  id,
+  strategy,
+  onRecordPerformance,
+}: {
+  id: string;
+  strategy: StrategyCandidate;
+  onRecordPerformance: () => void;
+}) {
   return (
     <div className="flex flex-wrap items-center gap-2.5 rounded-xl border border-neutral-200 bg-neutral-50 px-3.5 py-2.5">
       <span className="text-[11px] font-bold text-neutral-400">選択中の戦略</span>
@@ -24,6 +33,13 @@ function StrategyBadgeRow({ id, strategy }: { id: string; strategy: StrategyCand
         >
           戦略を変更
         </Link>
+        <button
+          type="button"
+          onClick={onRecordPerformance}
+          className="rounded-lg border border-fuchsia-200 bg-white px-3 py-1.5 text-[11.5px] font-bold text-fuchsia-600 transition hover:border-fuchsia-300"
+        >
+          成果を記録
+        </button>
       </div>
     </div>
   );
@@ -49,12 +65,14 @@ export function ResultHeader({
   status,
   selectedStrategy,
   lastUsage,
+  onRecordPerformance,
 }: {
   id: string;
   input: ContentInput;
   status: SaveStatus;
   selectedStrategy: StrategyCandidate;
   lastUsage?: GenerationUsage;
+  onRecordPerformance: () => void;
 }) {
   return (
     <header className="border-b border-neutral-100 bg-white">
@@ -67,6 +85,7 @@ export function ResultHeader({
             ← 入力画面へ戻る
           </Link>
           <div className="flex items-center gap-3">
+            <PerformanceLink />
             <HistoryLink />
             <SaveStatusBadge status={status} />
           </div>
@@ -97,7 +116,7 @@ export function ResultHeader({
             </p>
           </div>
         </div>
-        <StrategyBadgeRow id={id} strategy={selectedStrategy} />
+        <StrategyBadgeRow id={id} strategy={selectedStrategy} onRecordPerformance={onRecordPerformance} />
         {lastUsage ? <UsageDebugLine usage={lastUsage} /> : null}
       </div>
     </header>
