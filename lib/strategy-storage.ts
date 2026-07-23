@@ -32,6 +32,14 @@ export function getStrategyAnalysis(id: string): StrategyAnalysis | undefined {
   return readAll().find((analysis) => analysis.id === id);
 }
 
+export function getAllStrategyAnalyses(): StrategyAnalysis[] {
+  return readAll();
+}
+
+export function deleteStrategyAnalysis(id: string): void {
+  writeAll(readAll().filter((analysis) => analysis.id !== id));
+}
+
 export function saveStrategyAnalysis(analysis: StrategyAnalysis): void {
   const all = readAll();
   const index = all.findIndex((a) => a.id === analysis.id);

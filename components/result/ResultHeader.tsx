@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ContentInput, GenerationUsage, StrategyCandidate } from "@/lib/types";
 import type { SaveStatus } from "@/lib/hooks/useGeneratedContent";
 import { StarRating } from "@/components/strategy/StarRating";
+import { HistoryLink } from "@/components/history/HistoryLink";
 import { SaveStatusBadge } from "./SaveStatusBadge";
 
 function StrategyBadgeRow({ id, strategy }: { id: string; strategy: StrategyCandidate }) {
@@ -65,7 +66,10 @@ export function ResultHeader({
           >
             ← 入力画面へ戻る
           </Link>
-          <SaveStatusBadge status={status} />
+          <div className="flex items-center gap-3">
+            <HistoryLink />
+            <SaveStatusBadge status={status} />
+          </div>
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-400">

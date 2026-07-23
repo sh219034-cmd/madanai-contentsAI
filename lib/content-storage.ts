@@ -68,8 +68,9 @@ export function createAndSaveMockGeneratedContent(
   id: string,
   input: ContentInput,
   selectedStrategy: StrategyCandidate,
+  origin?: GeneratedContent["origin"],
 ): GeneratedContent {
-  const content = buildMockGeneratedContent(id, input, selectedStrategy);
+  const content = buildMockGeneratedContent(id, input, selectedStrategy, origin);
   saveContent(content);
   return content;
 }

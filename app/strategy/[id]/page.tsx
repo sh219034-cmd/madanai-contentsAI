@@ -12,6 +12,7 @@ import { GenerationProgress, CONTENT_GENERATION_STAGES } from "@/components/inpu
 import { RecommendedStrategyCard } from "@/components/strategy/RecommendedStrategyCard";
 import { StrategyCandidateCard } from "@/components/strategy/StrategyCandidateCard";
 import { StrategyChangeConfirmModal } from "@/components/strategy/StrategyChangeConfirmModal";
+import { HistoryLink } from "@/components/history/HistoryLink";
 
 const STAGE_INTERVAL_MS = 1500;
 const LAST_AUTO_STAGE = CONTENT_GENERATION_STAGES.length - 2;
@@ -59,7 +60,11 @@ export default function StrategyPage() {
     }
   };
 
-  const runGeneration = async (candidate: StrategyCandidate, targetId: string) => {
+  const runGeneration = async (
+    candidate: StrategyCandidate,
+    targetId: string,
+    origin?: GeneratedContent["origin"],
+  ) => {
     if (!analysis) return;
     setErrorMessage(null);
     setGenerating(true);
@@ -68,7 +73,7 @@ export default function StrategyPage() {
     if (analysis.isMock) {
       setStageIndex(CONTENT_GENERATION_STAGES.length - 1);
       try {
-        createAndSaveMockGeneratedContent(targetId, analysis.input, candidate);
+        createAndSaveMockGeneratedContent(targetId, analysis.input, candidate, origin);
       } catch {
         stopStageAnimation();
         setGenerating(false);
@@ -104,6 +109,7 @@ export default function StrategyPage() {
         json.result as GeneratedContentAiOutput,
         candidate,
         json.usage,
+        origin,
       );
 
       try {
@@ -141,14 +147,15 @@ export default function StrategyPage() {
     const newId = generateContentId();
     cloneStrategyAnalysisForNewId(id, newId);
     setPendingCandidate(null);
-    void runGeneration(candidate, newId);
+    void runGeneration(candidate, newId, "duplicate");
   };
 
   const handleConfirmOverwrite = () => {
     if (!pendingCandidate) return;
     const candidate = pendingCandidate;
     setPendingCandidate(null);
-    void runGeneration(candidate, id);
+    // 上書きは同じレコードの更新のため、元の由来(別案かどうか)を維持する
+    void runGeneration(candidate, id, existingContent?.origin);
   };
 
   if (status === "loading") {
@@ -198,12 +205,15 @@ export default function StrategyPage() {
     <div className="pb-20">
       <header className="border-b border-neutral-100 bg-white">
         <div className="mx-auto flex max-w-3xl flex-col gap-3 px-6 py-6">
-          <Link
-            href="/"
-            className="w-fit text-xs font-semibold text-neutral-500 transition hover:text-neutral-800"
-          >
-            ← 入力画面へ戻る
-          </Link>
+          <div className="flex items-center justify-between">
+            <Link
+              href="/"
+              className="w-fit text-xs font-semibold text-neutral-500 transition hover:text-neutral-800"
+            >
+              ← 入力画面へ戻る
+            </Link>
+            <HistoryLink />
+          </div>
           <span className="inline-flex w-fit items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-fuchsia-600">
             <span className="h-1.5 w-1.5 rounded-full bg-[linear-gradient(135deg,#ff6ec7_0%,#a855f7_55%,#7c3aed_100%)]" />
             AIマーケティング分析 完了

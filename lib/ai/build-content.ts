@@ -11,6 +11,8 @@ import type { GeneratedContentAiOutput } from "./schema";
  * Claude APIの構造化出力からGeneratedContentを組み立てる。
  * id/createdAt/updatedAt/inputはアプリ側で付与する。
  * selectedStrategyは/strategy/[id]でユーザーが選んだ戦略候補のスナップショット。
+ * originは「複製して別案を作る」から生成された場合に"duplicate"を渡す
+ * （履歴画面(/history)の状態表示に使う）。
  */
 export function buildGeneratedContentFromAi(
   id: string,
@@ -18,6 +20,7 @@ export function buildGeneratedContentFromAi(
   ai: GeneratedContentAiOutput,
   selectedStrategy: StrategyCandidate,
   usage?: GenerationUsage,
+  origin?: GeneratedContent["origin"],
 ): GeneratedContent {
   const now = new Date().toISOString();
 
@@ -27,6 +30,7 @@ export function buildGeneratedContentFromAi(
     updatedAt: now,
     input,
     selectedStrategy,
+    origin,
     strategy: ai.strategy,
     pdf: {
       sections: ai.pdf.sections.map((section, index) => ({

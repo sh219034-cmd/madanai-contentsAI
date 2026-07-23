@@ -1,16 +1,20 @@
 import { Suspense } from "react";
 import { ContentInputForm } from "@/components/input/ContentInputForm";
 import { MADANAI_BRAND } from "@/lib/madanai-brand";
+import { HistoryLink } from "@/components/history/HistoryLink";
 
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-6 py-16 sm:py-24">
       <div className="mb-12 flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span className="h-5 w-5 rounded-md bg-[linear-gradient(135deg,#ff6ec7_0%,#a855f7_55%,#7c3aed_100%)]" />
-          <span className="text-sm font-bold text-neutral-800">
-            {MADANAI_BRAND.name}
-          </span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="h-5 w-5 rounded-md bg-[linear-gradient(135deg,#ff6ec7_0%,#a855f7_55%,#7c3aed_100%)]" />
+            <span className="text-sm font-bold text-neutral-800">
+              {MADANAI_BRAND.name}
+            </span>
+          </div>
+          <HistoryLink />
         </div>
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-neutral-400">
           特典コンテンツ作成

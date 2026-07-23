@@ -239,6 +239,7 @@ export function buildMockGeneratedContent(
   id: string,
   input: ContentInput,
   selectedStrategy: StrategyCandidate,
+  origin?: GeneratedContent["origin"],
 ): GeneratedContent {
   const now = new Date().toISOString();
 
@@ -248,6 +249,7 @@ export function buildMockGeneratedContent(
     updatedAt: now,
     input,
     selectedStrategy,
+    origin,
     strategy: buildStrategyFromInput(input),
     pdf: {
       sections: withIds(FIXED_PDF_SECTIONS, `${id}-pdf`),

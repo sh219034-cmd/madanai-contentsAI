@@ -47,7 +47,9 @@ npm run dev
 - STEP3: Claude API接続（コード実装済み。実際のAPIキーでの実通信確認は**APIキー未取得のため保留中**）
 - STEP4: 編集・再生成・コピー機能（実装済み）
 - STEP4b: PDFテンプレート・プレビュー・ダウンロード・ブランドデザイン反映（実装済み。DESIGN.mdのSTEP5〜6に相当）
-- STEP4c: AIマーケティング分析・戦略提案機能（実装済み。単なる文章生成ツールではなく「AIマーケティング担当者」として設計） ← 現在ここ
+- STEP4c: AIマーケティング分析・戦略提案機能（実装済み。単なる文章生成ツールではなく「AIマーケティング担当者」として設計）
+- STEP4d: 再分析時の入力内容引き継ぎ（実装済み）
+- STEP4e: 作成履歴画面（`/history`、実装済み） ← 現在ここ
 
 STEP3の実通信確認（実際のClaude APIを叩く検証）を除き、他の全機能は「サンプルで確認する」の固定モックデータで動作確認できる。`/api/generate`・`/api/regenerate`・`/api/strategy`など実API呼び出しのコード自体はAPIキーの有無で分岐させておらず、APIキーが用意され次第そのまま本番利用に切り替えられる。
 
@@ -62,6 +64,22 @@ STEP3の実通信確認（実際のClaude APIを叩く検証）を除き、他�
 - `POST /api/generate` は選択済みの戦略（`StrategyCandidate`）を制約としてリクエストに含める。AIは戦略の切り口自体を自由に考え直さず、選ばれた戦略に沿ってPDF/LINE/SNS/CTAを生成する。生成結果には`selectedStrategy`として選択時点の戦略のスナップショットを保存する。
 - 戦略候補一覧（`StrategyAnalysis`）は`GeneratedContent`とは別のlocalStorageキー（`madanai:strategy-analyses`、`lib/strategy-storage.ts`）に保存し、「戦略を変更」時は再分析せず同じ候補一覧を再利用する。入力内容を変更して分析し直したい場合のみ、入力画面へ戻って再度分析する。
 - 結果画面で「戦略を変更」→別候補を選ぶと、「複製して別案を作る（推奨・元の生成結果は保持される、新しいコンテンツIDで保存）」「現在の内容を上書きする」の確認ダイアログを表示する。
+
+## 作成履歴画面（/history）
+
+localStorageに保存された`StrategyAnalysis`・`GeneratedContent`をidで突き合わせて一覧表示し、URLを覚えていなくても過去のデータを探して開けるようにする管理画面。入力・戦略・結果の各画面ヘッダーから「作成履歴」で行き来できる。
+
+- `lib/history-storage.ts`: 履歴画面専用のlocalStorage操作をここに集約する（コンポーネントから`madanai:strategy-analyses`・`madanai:contents`を直接読み書きしない）。`getHistoryItems()`（一覧の組み立て）・`duplicateGeneratedContent(id)`（複製）・`deleteHistoryEntry(id, options)`（削除）を提供する。
+- **状態の判定仕様**（`resolveStatus`、優先順位つき）:
+  1. `StrategyAnalysis.isMock === true` → 常に**「サンプル」**（複製されていてもサンプル由来であることを優先して表示する。実データと紛れないようにする目的を優先したため）
+  2. `GeneratedContent.origin === "duplicate"` → **「別案」**
+  3. `GeneratedContent`が存在する → **「コンテンツ生成済み」**
+  4. `StrategyAnalysis`のみ存在する → **「戦略分析のみ」**
+  
+  この優先順位により、「サンプルで確認する」由来のデータは、コンテンツ生成後や複製後も一貫して「サンプル」と表示され続ける（このサンドボックスにはAPIキーが無く、実データでの複製は作れないため、「別案」「戦略分析のみ」ラベル自体のロジック検証はlocalStorageへ合成データを注入したE2Eテストで確認した。実際にAPIキーを使って生成したコンテンツを複製すれば、通常のフローで「別案」表示を確認できる）。
+- **複製**（`duplicateGeneratedContent`）: 新しいIDを発行し、`GeneratedContent`を丸ごとコピー、テーマ末尾に「（コピー）」を付け、`createdAt`/`updatedAt`を現在時刻に更新、`origin: "duplicate"`を設定する。対応する`StrategyAnalysis`が存在すれば新IDの下にも複製し、複製後の結果画面から「戦略を変更」を使えるようにする。元データは一切変更しない。複製後は新しい結果画面（`/result/[newId]`）へ遷移する。
+- **削除**（`deleteHistoryEntry`）: 削除前に必ず確認モーダルを表示する。`GeneratedContent`がある場合は「生成結果だけ削除（`StrategyAnalysis`は残す）」「分析結果もまとめて削除」「キャンセル」の3択、`StrategyAnalysis`のみの場合は「削除する」「キャンセル」の2択。
+- **検索・絞り込み・並び替え**: テーマ検索・ターゲット検索（部分一致）・状態フィルタ・作成日時/更新日時ソートはすべてクライアント側（`app/history/page.tsx`）で行う。localStorage前提のデータ量のため、サーバー側の検索機能は実装していない。
 
 ## PDF機能（テンプレート・プレビュー・ダウンロード）
 

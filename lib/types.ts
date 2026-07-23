@@ -150,4 +150,29 @@ export type GeneratedContent = {
   sns: SnsContent;
   cta: CtaInfo;
   lastUsage?: GenerationUsage;
+  /**
+   * 「戦略を変更」→「複製して別案を作る」、または履歴画面の「複製」から
+   * 作成された場合に"duplicate"を設定する（履歴画面での状態表示に使う）。
+   * 通常の生成・上書きではundefinedのまま。
+   */
+  origin?: "duplicate";
+};
+
+/** 履歴画面(/history)でのカード表示用の状態。 */
+export type HistoryStatus = "strategy-only" | "generated" | "duplicate" | "sample";
+
+/**
+ * StrategyAnalysisとGeneratedContentを id で突き合わせた、履歴画面用の統合ビュー。
+ * lib/history-storage.ts の getHistoryItems() が組み立てる。
+ */
+export type HistoryItem = {
+  id: string;
+  theme: string;
+  target: string;
+  createdAt: string;
+  updatedAt: string;
+  status: HistoryStatus;
+  selectedStrategyName?: string;
+  hasAnalysis: boolean;
+  hasContent: boolean;
 };
