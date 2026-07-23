@@ -63,6 +63,7 @@ ${buildPastPerformanceGuidance(hasPastPerformanceData)}
 export function buildStrategyUserPrompt(
   input: ContentInput,
   pastPerformance?: PerformanceSummaryForPrompt[],
+  consultContext?: string,
 ): string {
   const lines = [
     "以下の情報をもとに、マーケティング戦略の候補を分析・提案してください。",
@@ -78,6 +79,14 @@ export function buildStrategyUserPrompt(
 
   if (input.supplementary && input.supplementary.trim().length > 0) {
     lines.push(`補足情報: ${input.supplementary}`);
+  }
+
+  if (consultContext && consultContext.trim().length > 0) {
+    lines.push(
+      "",
+      "【AIマーケティングコンサルとの会話で確認した追加情報】",
+      consultContext.trim(),
+    );
   }
 
   if (pastPerformance && pastPerformance.length > 0) {

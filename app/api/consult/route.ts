@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { strategyRequestSchema } from "@/lib/schema";
-import { analyzeStrategyWithAi } from "@/lib/ai/strategy-client";
+import { consultRequestSchema } from "@/lib/consult-schema";
+import { consultWithAi } from "@/lib/ai/consult-client";
 import { mapGenerationError } from "@/lib/ai/error-messages";
 
 export async function POST(request: Request) {
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = strategyRequestSchema.safeParse(body);
+  const parsed = consultRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       {
@@ -26,16 +26,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { output, usage } = await analyzeStrategyWithAi(
-      parsed.data.input,
-      parsed.data.pastPerformance,
-      parsed.data.consultContext,
-    );
+    const { output, usage } = await consultWithAi(parsed.data.input, parsed.data.qaHistory);
     return NextResponse.json({ result: output, usage });
   } catch (error) {
     const mapped = mapGenerationError(error);
-    // Claudeのレスポンス全文やAPIキーはログへ出さず、エラー種別のみ記録する
-    console.error(`[api/strategy] failed: ${mapped.code}`);
+    // 回答内容やAPIキーはログへ出さず、エラー種別のみ記録する
+    console.error(`[api/consult] failed: ${mapped.code}`);
     return NextResponse.json(
       { error: mapped.code, message: mapped.message },
       { status: mapped.status },

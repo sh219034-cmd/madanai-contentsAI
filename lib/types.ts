@@ -83,7 +83,7 @@ export type CtaInfo = {
  */
 export type GenerationUsage = {
   model: string;
-  processType: "generate" | "regenerate" | "strategy" | "performance-review";
+  processType: "generate" | "regenerate" | "strategy" | "performance-review" | "consult";
   inputTokens: number;
   outputTokens: number;
   estimatedCostUsd: number | null;
@@ -218,6 +218,43 @@ export type PerformanceMetrics = {
   inquiries?: number; // 問い合わせ
   contracts?: number; // 契約
   revenue?: number; // 売上
+};
+
+/**
+ * AIマーケティングコンサルモードの1問1答。answerがundefinedの間は
+ * 「AIが質問したがまだユーザーが回答していない」状態を表す。
+ */
+export type ConsultQaItem = {
+  id: string;
+  question: string;
+  reason: string; // なぜこの質問をするのか
+  answer?: string;
+};
+
+/** AIが理解した内容の最終まとめ。戦略提案に進む前にユーザーへ確認表示する。 */
+export type ConsultSummary = {
+  target: string; // ターゲット
+  usp: string; // USP（他社ではなくこのサービスを選ぶ理由）
+  benefit: string; // ベネフィット
+  evidence: string; // 根拠
+  purpose: string; // 目的
+  cta: string; // CTA
+};
+
+/**
+ * AIマーケティングコンサルモードのチャットセッション。
+ * StrategyAnalysis/GeneratedContentとは別のlocalStorageキーに保存し、
+ * idはStrategyAnalysis.idと共有する（戦略提案へ進む際に同じidを引き継ぐ）。
+ */
+export type ConsultSession = {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  input: ContentInput;
+  qaItems: ConsultQaItem[]; // 時系列の質問・回答履歴（チャット表示にそのまま使う）
+  status: "in-progress" | "ready";
+  summary?: ConsultSummary; // status==="ready"のときのみ表示する
+  lastUsage?: GenerationUsage;
 };
 
 /**

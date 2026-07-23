@@ -13,6 +13,11 @@ export const STRATEGY_ANALYSIS_STAGES = [
   "おすすめ戦略を選定しています",
 ];
 
+export const CONSULT_STAGES = [
+  "入力内容を確認しています",
+  "戦略提案に足りない情報がないか確認しています",
+];
+
 export function GenerationProgress({
   currentStage,
   stages = CONTENT_GENERATION_STAGES,

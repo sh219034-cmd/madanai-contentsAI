@@ -94,4 +94,7 @@ export const generateRequestSchema = z.object({
 export const strategyRequestSchema = z.object({
   input: contentInputSchema,
   pastPerformance: z.array(performanceSummarySchema).max(5).optional(),
+  // AIマーケティングコンサルモード(/consult/[id])で確認した追加情報の要約テキスト。
+  // ConsultSessionのQ&A履歴とAIの理解サマリーから組み立てる（lib/consult-context.ts）。
+  consultContext: z.string().max(4000).optional(),
 });

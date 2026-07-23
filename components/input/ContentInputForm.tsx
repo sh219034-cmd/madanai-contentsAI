@@ -9,14 +9,13 @@ import { contentInputSchema, type ContentInputFormValues } from "@/lib/schema";
 import { TONE_PRESETS } from "@/lib/madanai-brand";
 import { generateContentId, getContentById } from "@/lib/content-storage";
 import { getStrategyAnalysis, saveStrategyAnalysis } from "@/lib/strategy-storage";
+import { saveConsultSession } from "@/lib/consult-storage";
 import { FIXED_DEMO_INPUT } from "@/lib/mock-generated-content";
 import { buildMockStrategyAnalysis } from "@/lib/mock-strategy-analysis";
-import { buildStrategyAnalysisFromAi } from "@/lib/ai/build-strategy";
-import { getAllPerformanceRecords } from "@/lib/performance-storage";
-import { findRelevantPerformanceRecords, buildPerformanceSummaryForPrompt } from "@/lib/performance-relevance";
-import type { StrategyAnalysisAiOutput } from "@/lib/ai/strategy-schema";
-import type { ContentInput, GenerationUsage } from "@/lib/types";
-import { GenerationProgress, STRATEGY_ANALYSIS_STAGES } from "./GenerationProgress";
+import { appendConsultRoundFromAi } from "@/lib/ai/build-consult";
+import type { ConsultAiOutput } from "@/lib/ai/consult-schema";
+import type { ConsultSession, ContentInput, GenerationUsage } from "@/lib/types";
+import { GenerationProgress, CONSULT_STAGES } from "./GenerationProgress";
 
 const defaultValues: ContentInputFormValues = {
   theme: "",
@@ -30,7 +29,7 @@ const defaultValues: ContentInputFormValues = {
 };
 
 const STAGE_INTERVAL_MS = 1200;
-const LAST_AUTO_STAGE = STRATEGY_ANALYSIS_STAGES.length - 2;
+const LAST_AUTO_STAGE = CONSULT_STAGES.length - 2;
 
 type ReanalysisSource = { sourceId: string; sourceType: "strategy" | "result" } | null;
 
@@ -155,50 +154,55 @@ export function ContentInputForm() {
     startStageAnimation();
 
     const input = toContentInput(values);
-    // 過去の成果データはlocalStorageにのみ保存されており、サーバー(Route Handler)からは
-    // アクセスできないため、ここで関連性の高い記録を選び出し要約してから送信する。
-    const relevantPerformance = findRelevantPerformanceRecords(input, getAllPerformanceRecords());
-    const pastPerformance = buildPerformanceSummaryForPrompt(relevantPerformance);
 
     try {
-      const res = await fetch("/api/strategy", {
+      // 戦略提案の前に、AIマーケティングコンサルモード(/consult)で追加情報が
+      // 必要か確認する。ここでは最初のラウンドのみ呼び出し、以降のやり取りは
+      // /consult/[id]画面で行う（質問が0件ならそのまま「十分」として画面へ渡る）。
+      const res = await fetch("/api/consult", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input, pastPerformance }),
+        body: JSON.stringify({ input, qaHistory: [] }),
       });
       const json: {
-        result?: unknown;
+        result?: ConsultAiOutput;
         usage?: GenerationUsage;
         message?: string;
       } = await res.json();
 
       if (!res.ok || !json.result) {
-        throw new Error(json.message ?? "戦略分析に失敗しました。");
+        throw new Error(json.message ?? "分析に失敗しました。");
       }
 
       if (json.usage) {
         // 開発者向け：トークン使用量・概算費用をコンソールに出力する
-        console.info("[madanai] strategy analysis usage", json.usage);
+        console.info("[madanai] consult usage", json.usage);
       }
 
-      setStageIndex(STRATEGY_ANALYSIS_STAGES.length - 1);
+      setStageIndex(CONSULT_STAGES.length - 1);
       const id = generateContentId();
-      const analysis = buildStrategyAnalysisFromAi(
+      const now = new Date().toISOString();
+      const { qaItems, status, summary } = appendConsultRoundFromAi(id, [], json.result);
+      const session: ConsultSession = {
         id,
+        createdAt: now,
+        updatedAt: now,
         input,
-        json.result as StrategyAnalysisAiOutput,
-        json.usage,
-      );
+        qaItems,
+        status,
+        summary,
+        lastUsage: json.usage,
+      };
 
       try {
-        saveStrategyAnalysis(analysis);
+        saveConsultSession(session);
       } catch {
         throw new Error(
           "分析結果の保存に失敗しました。ブラウザのストレージ容量をご確認のうえ、もう一度お試しください。",
         );
       }
 
-      router.push(`/strategy/${analysis.id}`);
+      router.push(`/consult/${session.id}`);
     } catch (error) {
       stopStageAnimation();
       setAnalyzing(false);
@@ -227,7 +231,7 @@ export function ContentInputForm() {
         <p className="text-sm font-semibold text-neutral-700">
           AIマーケティング担当者が内容を分析しています。しばらくお待ちください…
         </p>
-        <GenerationProgress currentStage={stageIndex} stages={STRATEGY_ANALYSIS_STAGES} />
+        <GenerationProgress currentStage={stageIndex} stages={CONSULT_STAGES} />
       </div>
     );
   }

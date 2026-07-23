@@ -3,15 +3,18 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { AI_CONFIG } from "./config";
-import { buildStrategySystemPrompt, buildStrategyUserPrompt } from "./strategy-prompt";
-import { strategyAnalysisAiSchema, type StrategyAnalysisAiOutput } from "./strategy-schema";
+import {
+  buildConsultSystemPrompt,
+  buildConsultUserPrompt,
+  type ConsultQaHistoryEntry,
+} from "./consult-prompt";
+import { consultAiSchema, type ConsultAiOutput } from "./consult-schema";
 import { recordUsage, type UsageSummary } from "./usage-log";
 import { GenerationError, classifyError, getApiKeyOrThrow } from "./errors";
 import type { ContentInput } from "@/lib/types";
-import type { PerformanceSummaryForPrompt } from "@/lib/performance-schema";
 
-export type StrategyAnalysisResult = {
-  output: StrategyAnalysisAiOutput;
+export type ConsultResult = {
+  output: ConsultAiOutput;
   usage: UsageSummary;
 };
 
@@ -22,18 +25,16 @@ function getClient(): Anthropic {
 const MAX_ATTEMPTS = 2;
 
 /**
- * 入力内容からClaude APIを呼び出し、戦略候補(最低5件)を分析・提案する。
- * これはコンテンツ生成(generateContentFromAi)より前段のステップで、
- * ここではまだPDF/LINE/SNS文章は生成しない。
+ * 入力内容とここまでのQ&A履歴から、戦略提案に十分な情報が揃っているか、
+ * まだ追加で確認すべきことがあるかをClaude APIへ判断させる。
+ * 戦略候補(analyzeStrategyWithAi)より前段の、情報収集のみを担うステップ。
  */
-export async function analyzeStrategyWithAi(
+export async function consultWithAi(
   input: ContentInput,
-  pastPerformance?: PerformanceSummaryForPrompt[],
-  consultContext?: string,
-): Promise<StrategyAnalysisResult> {
+  qaHistory: ConsultQaHistoryEntry[],
+): Promise<ConsultResult> {
   const client = getClient();
-  const model = AI_CONFIG.models.strategy;
-  const hasPastPerformanceData = Boolean(pastPerformance && pastPerformance.length > 0);
+  const model = AI_CONFIG.models.consult;
   let lastError: GenerationError | null = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -41,29 +42,27 @@ export async function analyzeStrategyWithAi(
       const response = await client.messages.parse(
         {
           model,
-          max_tokens: AI_CONFIG.strategyMaxOutputTokens,
+          max_tokens: AI_CONFIG.consultMaxOutputTokens,
           thinking: { type: "adaptive" },
           output_config: {
-            effort: AI_CONFIG.effortByPurpose.strategy,
-            format: zodOutputFormat(strategyAnalysisAiSchema),
+            effort: AI_CONFIG.effortByPurpose.consult,
+            format: zodOutputFormat(consultAiSchema),
           },
-          system: buildStrategySystemPrompt(hasPastPerformanceData),
-          messages: [
-            { role: "user", content: buildStrategyUserPrompt(input, pastPerformance, consultContext) },
-          ],
+          system: buildConsultSystemPrompt(),
+          messages: [{ role: "user", content: buildConsultUserPrompt(input, qaHistory) }],
         },
         { timeout: AI_CONFIG.requestTimeoutMs },
       );
 
       const usage = recordUsage({
         model,
-        processType: "strategy",
+        processType: "consult",
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
       });
 
       if (response.stop_reason === "refusal") {
-        throw new GenerationError("refusal", "strategy analysis refused");
+        throw new GenerationError("refusal", "consult refused");
       }
       if (!response.parsed_output) {
         throw new GenerationError("parse_failed", "structured output did not validate");
@@ -78,5 +77,5 @@ export async function analyzeStrategyWithAi(
     }
   }
 
-  throw lastError ?? new GenerationError("api_error", "strategy analysis failed");
+  throw lastError ?? new GenerationError("api_error", "consult failed");
 }
