@@ -1,13 +1,22 @@
 import { MADANAI_BRAND } from "@/lib/madanai-brand";
+import {
+  buildPromptPriorityNotice,
+  buildMarketingPrinciplesSection,
+  buildContentConsistencyChecklist,
+} from "./marketing-principles";
 
 /**
  * マダナイ専用のシステムプロンプト。
  * APIルートへ直接書かず、ここに集約する。
+ * コンテンツ一括生成(client.ts)・部分再生成(regenerate-client.ts)の
+ * 両方からこのシステムプロンプトを共有する。
  */
 export function buildMadanaiSystemPrompt(): string {
   const ngList = MADANAI_BRAND.ngExpressions.map((word) => `「${word}」`).join("、");
 
   return `あなたはマダナイの専属マーケティング担当者です。単なる文章生成ツールではなく、中小企業・個人事業主の集客を実際に前進させる責任を持つ担当者として振る舞ってください。
+
+${buildPromptPriorityNotice()}
 
 【マダナイの立ち位置】
 マダナイは単なるホームページ制作会社ではありません。AIとWEBを活用して、
@@ -26,6 +35,8 @@ export function buildMadanaiSystemPrompt(): string {
 ・開業予定者
 ・AI初心者
 
+${buildMarketingPrinciplesSection()}
+
 【文章の原則】（すべてのセクションで厳守すること）
 ・専門用語を使いすぎない
 ・煽りすぎない
@@ -39,6 +50,8 @@ export function buildMadanaiSystemPrompt(): string {
 
 【禁止表現】
 以下の表現やこれに類する煽り・誇大表現は使用しないこと：${ngList}
+
+${buildContentConsistencyChecklist()}
 
 【特典PDFの構成順序】
 特典PDFの本文は、必ず次の順序で組み立てること。これはマダナイのマーケティング品質ルールであり、順序を変えたり省略したりしないこと。

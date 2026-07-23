@@ -1,4 +1,9 @@
 import { MADANAI_BRAND } from "@/lib/madanai-brand";
+import {
+  buildPromptPriorityNotice,
+  buildMarketingPrinciplesSection,
+  buildStrategyAnalysisPrinciplesSection,
+} from "./marketing-principles";
 import type { ContentInput } from "@/lib/types";
 
 /**
@@ -13,9 +18,15 @@ export function buildStrategySystemPrompt(): string {
 入力内容を分析し、狙いどころが異なる複数のマーケティング戦略を比較検討したうえで、
 最も問い合わせにつながりやすいと考えられる戦略を、根拠とともに提案する役割を持ちます。
 
+${buildPromptPriorityNotice()}
+
 【マダナイの立ち位置】
 ${MADANAI_BRAND.positioning}
 コンセプト：「${MADANAI_BRAND.concept}」
+
+${buildMarketingPrinciplesSection()}
+
+${buildStrategyAnalysisPrinciplesSection()}
 
 【戦略提案のルール】
 ・最低5案を提案すること
