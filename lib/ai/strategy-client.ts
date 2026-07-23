@@ -40,7 +40,7 @@ export async function analyzeStrategyWithAi(
           max_tokens: AI_CONFIG.strategyMaxOutputTokens,
           thinking: { type: "adaptive" },
           output_config: {
-            effort: AI_CONFIG.effort,
+            effort: AI_CONFIG.effortByPurpose.strategy,
             format: zodOutputFormat(strategyAnalysisAiSchema),
           },
           system: buildStrategySystemPrompt(),

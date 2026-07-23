@@ -64,7 +64,7 @@ export async function regenerateSectionWithAi(
           max_tokens: AI_CONFIG.regenerateMaxOutputTokens,
           thinking: { type: "adaptive" },
           output_config: {
-            effort: AI_CONFIG.effort,
+            effort: AI_CONFIG.effortByPurpose.regeneration,
             format,
           },
           system: buildMadanaiSystemPrompt(),

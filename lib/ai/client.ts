@@ -46,7 +46,7 @@ export async function generateContentFromAi(
           max_tokens: AI_CONFIG.maxOutputTokens,
           thinking: { type: "adaptive" },
           output_config: {
-            effort: AI_CONFIG.effort,
+            effort: AI_CONFIG.effortByPurpose.generation,
             format: zodOutputFormat(generatedContentAiSchema),
           },
           system: buildMadanaiSystemPrompt(),

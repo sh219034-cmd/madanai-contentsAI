@@ -39,9 +39,20 @@ export const AI_CONFIG = {
   regenerateMaxOutputTokens: 2000,
   // 戦略候補5〜9件分（各案は短文フィールドのみ）のため中程度で足りる。
   strategyMaxOutputTokens: 4000,
-  // 定型フォーマットの構造化生成が中心のため high ではなく medium を既定にし、
-  // 費用と応答速度のバランスを取る。
-  effort: "medium" as const,
+  /**
+   * 用途別の思考の深さ（'low'|'medium'|'high'|'xhigh'|'max'、
+   * @anthropic-ai/sdk の型定義で確認済み）。
+   * 戦略分析・コンテンツ生成は「AIマーケティング責任者」としての深い分析
+   * （ターゲット詳細・認知段階・競合分析・USP・ベネフィット・根拠・CTA設計、
+   * 生成前レビュー・セルフレビューを経てから出力する）を内部で行うため、
+   * mediumからhighへ引き上げ、思考時間の増加を許容する。
+   * 部分再生成は1項目のみの小さな修正のためmediumのまま据え置く。
+   */
+  effortByPurpose: {
+    generation: "high" as const,
+    strategy: "high" as const,
+    regeneration: "medium" as const,
+  },
   // サーバーレス関数のタイムアウトより十分短く、かつAPIの遅延に耐えられる値。
   requestTimeoutMs: 55_000,
 } as const;
